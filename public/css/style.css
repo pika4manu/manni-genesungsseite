@@ -575,15 +575,81 @@ body {
 
 .mini-pin {
   position: absolute;
-  width: 16px;
-  height: 16px;
-  margin: -8px 0 0 -8px;
+  width: 36px;
+  height: 30px;
+  margin-left: -18px;
+  margin-top: -30px; /* die Spitze sitzt genau auf dem gesetzten Punkt */
+  pointer-events: auto;
+  cursor: grab;
+  z-index: 3;
+  touch-action: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+  animation: pin-schweben 2.4s ease-in-out infinite;
+}
+
+.mini-pin:active,
+.mini-pin.zieht {
+  cursor: grabbing;
+}
+
+.mini-pin.zieht {
+  animation: none;
+}
+
+.mini-pin::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  transform: translateX(-50%);
   border-radius: 50%;
   background: var(--rot);
   border: 3px solid #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-  pointer-events: none;
-  transform: scale(1.15);
+  box-sizing: border-box;
+}
+
+.mini-pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 11px solid var(--rot);
+}
+
+@keyframes pin-schweben {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Der frisch gehängte Wunsch erscheint sanft an seiner Stelle */
+@keyframes notiz-erscheint {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--drehung, 0deg)) scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--drehung, 0deg)) scale(1);
+  }
+}
+
+.notiz.ist-neu {
+  animation: notiz-erscheint 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  z-index: 6;
+}
+
+.hinweis[hidden] {
+  display: none;
 }
 
 .positionswahl-hinweis {
@@ -723,6 +789,16 @@ body {
 
 .seitenfuss-herz {
   color: var(--rot);
+}
+
+.seitenfuss a {
+  color: var(--rot);
+  font-weight: 600;
+  text-decoration-color: rgba(180, 84, 63, 0.4);
+}
+
+.seitenfuss a:hover {
+  text-decoration-color: currentColor;
 }
 
 /* ---------- Kleinere Bildschirme ---------- */

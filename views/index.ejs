@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de">
   <head>
-    <%- include('resources/head.ejs', { titel: titel, description: 'Eine Pinnwand voller Wünsche für Herrn Gerstgrasser.' }) %>
+    <%- include('resources/head.ejs', { titel: titel, description: 'Eine Pinnwand voller Wünsche für Manfred.' }) %>
   </head>
 
   <body>
@@ -16,9 +16,9 @@
         <div class="pinnwand-ueberschrift">
           <p class="abschnitt-text">
             <% if (eintraege.length === 0) { %>
-              Noch hängt nichts an der Wand. Schreibe einen Wunsch an Herrn Gerstgrasser.
+              Noch hängt nichts an der Wand. Schreibe den ersten Wunsch für Manfred.
             <% } else { %>
-              <%= eintraege.length %> <%= eintraege.length === 1 ? 'Wunsch' : 'Wünsche' %> hängen gerade an der Wand.
+              <%= eintraege.length %> <%= eintraege.length === 1 ? 'Wunsch' : 'Wünsche' %> für Manfred hängen gerade an der Wand.
             <% } %>
           </p>
         </div>

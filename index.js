@@ -1,18 +1,18 @@
-require('dotenv').config({ quiet: true });
+require("dotenv").config({ quiet: true });
 
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
+const express = require("express");
+const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-const DB_FILE = path.join(__dirname, 'storage', 'db.json');
+const DB_FILE = path.join(__dirname, "storage", "db.json");
 const MAX_TEXT_LENGTH = 600;
 
 // Extrem toleranter Spamschutz: Honigtopf-Feld + Mindestabstand von 8 Sekunden pro IP
-const SPAM_HONIGTOPF = 'homepage';
+const SPAM_HONIGTOPF = "homepage";
 const MINDEST_ABSTAND_MS = 8 * 1000;
 const letzterWunsch = new Map(); // IP → Zeitpunkt des letzten gespeicherten Wunsches
 
@@ -24,7 +24,7 @@ setInterval(function () {
 }, 60 * 1000).unref();
 
 // Passwort für den geheimen Verwaltungsbereich /admin (steht in der .env)
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin123";
 const ADMIN_SESSION_DAUER = 2 * 60 * 60 * 1000; // 2 Stunden
 const ADMIN_MAX_VERSUCHE = 5;
 const ADMIN_SPERRZEIT = 5 * 60 * 1000; // 5 Minuten nach zu vielen Fehlversuchen
@@ -34,35 +34,35 @@ const ADMIN_SPERRZEIT = 5 * 60 * 1000; // 5 Minuten nach zu vielen Fehlversuchen
 // schriftFaktor legt die Schriftgröße fest (in % der Blattbreite).
 const POSIT_BILDER = [
   {
-    url: '/img/posit/1.png',
+    url: "/img/posit/1.png",
     breite: 200,
     hoehe: 223,
-    textBereich: { links: '11%', rechts: '9%', oben: '25%', unten: '15%' },
-    schriftFaktor: 8
+    textBereich: { links: "11%", rechts: "9%", oben: "25%", unten: "15%" },
+    schriftFaktor: 8,
   },
   {
-    url: '/img/posit/2.png',
+    url: "/img/posit/2.png",
     breite: 282,
     hoehe: 300,
-    textBereich: { links: '13%', rechts: '9%', oben: '17%', unten: '20%' },
-    schriftFaktor: 7.8
+    textBereich: { links: "13%", rechts: "9%", oben: "17%", unten: "20%" },
+    schriftFaktor: 7.8,
   },
   {
-    url: '/img/posit/3.png',
+    url: "/img/posit/3.png",
     breite: 500,
     hoehe: 354,
-    textBereich: { links: '24%', rechts: '23%', oben: '17%', unten: '13%' },
-    schriftFaktor: 5.3
-  }
+    textBereich: { links: "24%", rechts: "23%", oben: "17%", unten: "13%" },
+    schriftFaktor: 5.3,
+  },
 ];
 
 // --- EJS als Template-Engine einrichten ---
 // Seiten liegen in ./views, die EJS-Resources (Partials) in ./views/resources
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 
 // Statische Dateien (Bilder, CSS, JS) aus ./public
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Formulardaten entgegennehmen (POST /wuensche)
 app.use(express.urlencoded({ extended: true }));
@@ -70,7 +70,7 @@ app.use(express.urlencoded({ extended: true }));
 // --- Datenzugriff auf storage/db.json ---
 function readEintraege() {
   try {
-    const rohdaten = fs.readFileSync(DB_FILE, 'utf8').trim();
+    const rohdaten = fs.readFileSync(DB_FILE, "utf8").trim();
     if (!rohdaten) return [];
 
     const daten = JSON.parse(rohdaten);
@@ -78,22 +78,22 @@ function readEintraege() {
     if (Array.isArray(daten.eintraege)) return daten.eintraege;
     return [];
   } catch (fehler) {
-    console.error('db.json konnte nicht gelesen werden:', fehler.message);
+    console.error("db.json konnte nicht gelesen werden:", fehler.message);
     return [];
   }
 }
 
 function writeEintraege(eintraege) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(eintraege, null, 2), 'utf8');
+  fs.writeFileSync(DB_FILE, JSON.stringify(eintraege, null, 2), "utf8");
 }
 
 function sortiereNachDatum(eintraege) {
-  return eintraege.slice().sort(
-    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
-  );
+  return eintraege
+    .slice()
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 }
 
-// Die Pinnwand ist eine große Karte. Positionen werden in Prozent (0–100) gespeichert.
+// Die Pinnwand ist eine große Karte. Positionen werden in Prozent (0-100) gespeichert.
 function zahl(wert, min, max, ersatz) {
   const n = Number(wert);
   if (!Number.isFinite(n)) return ersatz;
@@ -102,7 +102,10 @@ function zahl(wert, min, max, ersatz) {
 
 // Deterministische Ersatzposition für alte Einträge ohne gespeicherte Koordinaten
 function ersatzPosition(index, gesamt) {
-  const spalten = Math.max(2, Math.min(7, Math.ceil(Math.sqrt(Math.max(gesamt, 1) * 1.8))));
+  const spalten = Math.max(
+    2,
+    Math.min(7, Math.ceil(Math.sqrt(Math.max(gesamt, 1) * 1.8))),
+  );
   const zeilen = Math.max(1, Math.ceil(gesamt / spalten));
   const spalte = index % spalten;
   const zeile = Math.floor(index / spalten);
@@ -111,7 +114,7 @@ function ersatzPosition(index, gesamt) {
 
   return {
     x: zahl(7 + ((spalte + 0.5) / spalten) * 86 + streuungX, 5, 95, 50),
-    y: zahl(10 + ((zeile + 0.5) / zeilen) * 80 + streuungY, 6, 94, 50)
+    y: zahl(10 + ((zeile + 0.5) / zeilen) * 80 + streuungY, 6, 94, 50),
   };
 }
 
@@ -121,7 +124,10 @@ function ladeEintraege() {
   let geaendert = false;
 
   eintraege.forEach(function (eintrag, index) {
-    if (!Number.isFinite(Number(eintrag.x)) || !Number.isFinite(Number(eintrag.y))) {
+    if (
+      !Number.isFinite(Number(eintrag.x)) ||
+      !Number.isFinite(Number(eintrag.y))
+    ) {
       const position = ersatzPosition(index, eintraege.length);
       eintrag.x = position.x;
       eintrag.y = position.y;
@@ -133,7 +139,10 @@ function ladeEintraege() {
     try {
       writeEintraege(eintraege);
     } catch (fehler) {
-      console.error('Positionen konnten nicht gespeichert werden:', fehler.message);
+      console.error(
+        "Positionen konnten nicht gespeichert werden:",
+        fehler.message,
+      );
     }
   }
 
@@ -152,52 +161,68 @@ function mitPositDaten(eintrag) {
     textBereich: posit.textBereich,
     schriftFaktor: posit.schriftFaktor,
     x: zahl(eintrag.x, 0, 100, 50),
-    y: zahl(eintrag.y, 0, 100, 50)
+    y: zahl(eintrag.y, 0, 100, 50),
   });
 }
 
 // --- Routen ---
-app.get('/', (req, res) => {
-  res.render('index', {
+app.get("/", (req, res) => {
+  res.render("index", {
     eintraege: sortiereNachDatum(ladeEintraege()).map(mitPositDaten),
     fehler: req.query.fehler || null,
     textVorbelegt: req.query.text || null,
     posX: req.query.x != null ? zahl(req.query.x, 0, 100, null) : null,
     posY: req.query.y != null ? zahl(req.query.y, 0, 100, null) : null,
     neuId: req.query.neu || null,
-    titel: 'Meine Genesungsseite'
+    titel: "Genesungsseite für Manfred",
   });
 });
 
 // Neuen Wunsch aufschreiben und an die Pinnwand hängen
-app.post('/wuensche', (req, res) => {
-  // Honigtopf gefüllt → vermutlich Bot: tun, als wäre alles in Ordnung, nichts speichern
-  if ((req.body[SPAM_HONIGTOPF] || '').toString().trim() !== '') {
-    return res.redirect('/');
+app.post("/wuensche", (req, res) => {
+  // Seiten, die per JavaScript absenden (kein Neuladen), bekommen JSON zurück
+  const ajax = req.get("X-Requested-With") === "XMLHttpRequest";
+
+  function weiterleiten(fehlerCode, daten) {
+    let ziel = "/?fehler=" + encodeURIComponent(fehlerCode);
+    if (daten.text) ziel += "&text=" + encodeURIComponent(daten.text);
+    if (daten.x !== undefined)
+      ziel += "&x=" + encodeURIComponent(daten.x) + "&y=" + encodeURIComponent(daten.y);
+    return res.redirect(ziel);
   }
 
-  const text = (req.body.text || '').toString().trim();
+  function fehlerAntwort(status, code, daten) {
+    daten = daten || {};
+    if (ajax) {
+      return res
+        .status(status)
+        .json(Object.assign({ ok: false, fehler: code }, daten));
+    }
+    return weiterleiten(code, daten);
+  }
+
+  // Honigtopf gefüllt → vermutlich Bot: tun, als wäre alles in Ordnung, nichts speichern
+  if ((req.body[SPAM_HONIGTOPF] || "").toString().trim() !== "") {
+    if (ajax) return res.json({ ok: true, eintrag: null });
+    return res.redirect("/");
+  }
+
+  const text = (req.body.text || "").toString().trim();
   const x = zahl(req.body.x, 0, 100, 50);
   const y = zahl(req.body.y, 0, 100, 50);
 
   if (!text) {
-    return res.redirect('/?fehler=leer');
+    return fehlerAntwort(422, "leer");
   }
   if (text.length > MAX_TEXT_LENGTH) {
-    return res.redirect(
-      '/?fehler=zu-lang&text=' + encodeURIComponent(text) +
-      '&x=' + encodeURIComponent(x) + '&y=' + encodeURIComponent(y)
-    );
+    return fehlerAntwort(422, "zu-lang", { text, x, y });
   }
 
-  // Mindestabstand pro IP – schützt vor massenhaften Abgaben, stört aber niemanden
+  // Mindestabstand pro IP - schützt vor massenhaften Abgaben, stört aber niemanden
   const jetzt = Date.now();
   const letztes = letzterWunsch.get(req.ip) || 0;
   if (jetzt - letztes < MINDEST_ABSTAND_MS) {
-    return res.redirect(
-      '/?fehler=zu-schnell&text=' + encodeURIComponent(text) +
-      '&x=' + encodeURIComponent(x) + '&y=' + encodeURIComponent(y)
-    );
+    return fehlerAntwort(429, "zu-schnell", { text, x, y });
   }
 
   const eintraege = ladeEintraege();
@@ -209,7 +234,7 @@ app.post('/wuensche', (req, res) => {
     image: posit.url,
     createdAt: new Date().toISOString(),
     x: x,
-    y: y
+    y: y,
   };
 
   eintraege.push(eintrag);
@@ -218,25 +243,28 @@ app.post('/wuensche', (req, res) => {
     writeEintraege(eintraege);
     letzterWunsch.set(req.ip, jetzt);
   } catch (fehler) {
-    console.error('db.json konnte nicht gespeichert werden:', fehler.message);
-    return res.redirect(
-      '/?fehler=speicher&text=' + encodeURIComponent(text) +
-      '&x=' + encodeURIComponent(x) + '&y=' + encodeURIComponent(y)
-    );
+    console.error("db.json konnte nicht gespeichert werden:", fehler.message);
+    return fehlerAntwort(500, "speicher", { text, x, y });
+  }
+
+  if (ajax) {
+    return res.json({ ok: true, eintrag: mitPositDaten(eintrag) });
   }
 
   // Direkt zur neuen Kartenstelle springen
-  res.redirect('/?neu=' + encodeURIComponent(eintrag.id));
+  res.redirect("/?neu=" + encodeURIComponent(eintrag.id));
 });
 
 // JSON-Schnittstelle, falls die Pinnwand später live aktualisiert werden soll
-app.get('/api/wuensche', (req, res) => {
+app.get("/api/wuensche", (req, res) => {
   res.json(sortiereNachDatum(ladeEintraege()).map(mitPositDaten));
 });
 
 // Der Verwaltungsbereich soll nicht in Suchmaschinen landen
-app.get('/robots.txt', (req, res) => {
-  res.type('text/plain').send('User-agent: *\nDisallow: /admin\nDisallow: /api\n');
+app.get("/robots.txt", (req, res) => {
+  res
+    .type("text/plain")
+    .send("User-agent: *\nDisallow: /admin\nDisallow: /api\n");
 });
 
 // --- Geheimer Verwaltungsbereich /admin ---
@@ -246,11 +274,11 @@ const adminFehlversuche = new Map();
 
 function parseCookies(req) {
   const cookies = {};
-  (req.headers.cookie || '').split(';').forEach((teil) => {
-    const trenner = teil.indexOf('=');
+  (req.headers.cookie || "").split(";").forEach((teil) => {
+    const trenner = teil.indexOf("=");
     if (trenner === -1) return;
     cookies[teil.slice(0, trenner).trim()] = decodeURIComponent(
-      teil.slice(trenner + 1).trim()
+      teil.slice(trenner + 1).trim(),
     );
   });
   return cookies;
@@ -271,8 +299,14 @@ function adminAngemeldet(req) {
 }
 
 function passwortPasst(eingabe) {
-  const hashEingabe = crypto.createHash('sha256').update(String(eingabe)).digest();
-  const hashPasswort = crypto.createHash('sha256').update(String(ADMIN_PASSWORD)).digest();
+  const hashEingabe = crypto
+    .createHash("sha256")
+    .update(String(eingabe))
+    .digest();
+  const hashPasswort = crypto
+    .createHash("sha256")
+    .update(String(ADMIN_PASSWORD))
+    .digest();
   return crypto.timingSafeEqual(hashEingabe, hashPasswort);
 }
 
@@ -299,78 +333,80 @@ function fehlversuchNotieren(ip) {
 }
 
 // Anmeldung
-app.post('/admin/login', (req, res) => {
+app.post("/admin/login", (req, res) => {
   const ip = req.ip;
 
   if (adminGesperrt(ip)) {
-    return res.redirect('/admin?fehler=gesperrt');
+    return res.redirect("/admin?fehler=gesperrt");
   }
 
   if (!passwortPasst(req.body.passwort)) {
     fehlversuchNotieren(ip);
-    return res.redirect('/admin?fehler=falsch');
+    return res.redirect("/admin?fehler=falsch");
   }
 
   adminFehlversuche.delete(ip);
 
-  const token = crypto.randomBytes(32).toString('hex');
+  const token = crypto.randomBytes(32).toString("hex");
   adminSessions.set(token, { laufzeitBis: Date.now() + ADMIN_SESSION_DAUER });
 
-  res.cookie('admin_session', token, {
+  res.cookie("admin_session", token, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: "lax",
     maxAge: ADMIN_SESSION_DAUER,
-    path: '/'
+    path: "/",
   });
 
-  res.redirect('/admin');
+  res.redirect("/admin");
 });
 
 // Abmeldung
-app.post('/admin/logout', (req, res) => {
+app.post("/admin/logout", (req, res) => {
   const token = parseCookies(req).admin_session;
   if (token) adminSessions.delete(token);
 
-  res.clearCookie('admin_session', { path: '/' });
-  res.redirect('/admin');
+  res.clearCookie("admin_session", { path: "/" });
+  res.redirect("/admin");
 });
 
 // Übersicht mit allen Wünschen (nur für Angemeldete)
-app.get('/admin', (req, res) => {
+app.get("/admin", (req, res) => {
   const angemeldet = adminAngemeldet(req);
 
-  res.render('admin', {
-    titel: 'Verwaltung',
+  res.render("admin", {
+    titel: "Verwaltung",
     angemeldet: angemeldet,
     loginFehler: req.query.fehler || null,
-    eintraege: angemeldet ? sortiereNachDatum(ladeEintraege()).map(mitPositDaten) : []
+    eintraege: angemeldet
+      ? sortiereNachDatum(ladeEintraege()).map(mitPositDaten)
+      : [],
   });
 });
 
 // Wunsch im Verwaltungsbereich löschen
-app.post('/admin/eintraege/:id/loeschen', (req, res) => {
+app.post("/admin/eintraege/:id/loeschen", (req, res) => {
   if (!adminAngemeldet(req)) {
-    return res.redirect('/admin');
+    return res.redirect("/admin");
   }
 
   const eintraege = readEintraege().filter(
-    (eintrag) => eintrag.id !== req.params.id
+    (eintrag) => eintrag.id !== req.params.id,
   );
 
   try {
     writeEintraege(eintraege);
   } catch (fehler) {
-    console.error('db.json konnte nicht gespeichert werden:', fehler.message);
+    console.error("db.json konnte nicht gespeichert werden:", fehler.message);
   }
 
-  res.redirect('/admin');
+  res.redirect("/admin");
 });
 
 // Seite nicht gefunden
 app.use((req, res) => {
-  res.status(404).render('404', {
-    titel: 'Seite nicht gefunden',
-    fehler: null
+  res.status(404).render("404", {
+    titel: "Seite nicht gefunden",
+    fehler: null,
   });
 });
 

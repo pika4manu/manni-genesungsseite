@@ -3,6 +3,34 @@
 
   var urlParameter = new URLSearchParams(window.location.search);
 
+  // Von den Init-Funktionen gefüllt (für Austausch zwischen den Bausteinen)
+  var karteApi = { flug: null };
+  var positionswahlApi = { setze: null };
+
+  // ---------- Fehlermeldungen ----------
+  var FEHLER_TEXTE = {
+    leer: 'Bitte schreibe zuerst einen Wunsch auf.',
+    'zu-lang': 'Der Wunsch ist zu lang. Maximal 600 Zeichen sind erlaubt.',
+    'zu-schnell':
+      'Bitte kurz warten – du kannst deinen Wunsch gleich noch einmal anhängen.',
+    speicher:
+      'Der Wunsch konnte nicht gespeichert werden. Bitte versuche es noch einmal.'
+  };
+
+  function zeigeFormularFehler(code) {
+    var box = document.getElementById('formular-fehler');
+    if (!box) return;
+    box.textContent = FEHLER_TEXTE[code] || FEHLER_TEXTE.speicher;
+    box.hidden = false;
+  }
+
+  function versteckeFormularFehler() {
+    var box = document.getElementById('formular-fehler');
+    if (!box) return;
+    box.hidden = true;
+    box.textContent = '';
+  }
+
   // ---------- Pop-ups ----------
   function oeffneDialog(dialog) {
     if (!dialog) return;
@@ -10,6 +38,10 @@
       dialog.showModal();
     } else {
       dialog.setAttribute('open', 'open');
+    }
+
+    if (dialog.id === 'wunsch-dialog') {
+      versteckeFormularFehler();
     }
 
     var feld = dialog.querySelector('textarea');
@@ -48,7 +80,7 @@
     });
   });
 
-  // Nach einem Fehler das Pop-up direkt wieder öffnen
+  // Nach einem Fehler (ohne JavaScript) das Pop-up direkt wieder öffnen
   if (urlParameter.get('fehler')) {
     oeffneDialog(document.getElementById('wunsch-dialog'));
   }
@@ -57,6 +89,12 @@
   var feld = document.getElementById('text');
   var stand = document.getElementById('zeichenzaehler-stand');
 
+  function aktualisiereZaehler() {
+    if (feld && stand) {
+      stand.textContent = String(feld.value.length);
+    }
+  }
+
   if (feld && stand) {
     // Text nach einem Speicherfehler wiederherstellen
     var vorbehalterText = urlParameter.get('text');
@@ -64,12 +102,11 @@
       feld.value = vorbehalterText;
     }
 
-    var aktualisieren = function () {
-      stand.textContent = String(feld.value.length);
-    };
-
-    feld.addEventListener('input', aktualisieren);
-    aktualisieren();
+    feld.addEventListener('input', function () {
+      aktualisiereZaehler();
+      versteckeFormularFehler();
+    });
+    aktualisiereZaehler();
   }
 
   // ---------- Zu lange Wünsche: Klick öffnet das Blatt zum Lesen ----------
@@ -125,55 +162,191 @@
     }
   });
 
-  document.querySelectorAll('.notiz').forEach(function (notiz) {
+  // Passt der Text nicht auf das Blatt, gibt es einen „Mehr lesen“-Klick
+  function starteUeberlaufPruefung(notiz) {
     var text = notiz.querySelector('.notiz-text-inhalt');
     if (!text) return;
 
     var bereich = text.closest('.notiz-text-bereich');
     if (!bereich) return;
 
-    // Passt der Text nicht auf das Blatt (gekürzt oder zu hoch), gibt es einen Klick
     var ueberlauf =
       text.scrollHeight > text.offsetHeight + 2 ||
       text.scrollHeight > bereich.clientHeight + 2;
 
-    if (ueberlauf) {
-      notiz.classList.add('ist-zu-lang');
+    if (!ueberlauf) return;
 
-      var knopf = document.createElement('button');
-      knopf.type = 'button';
-      knopf.className = 'notiz-mehr';
-      knopf.textContent = 'Mehr lesen';
-      knopf.setAttribute('aria-label', 'Wunsch vollständig lesen');
+    notiz.classList.add('ist-zu-lang');
 
-      var meta = notiz.querySelector('.notiz-meta');
-      if (meta) {
-        meta.appendChild(knopf);
-      } else {
-        notiz.appendChild(knopf);
-      }
+    var knopf = document.createElement('button');
+    knopf.type = 'button';
+    knopf.className = 'notiz-mehr';
+    knopf.textContent = 'Mehr lesen';
+    knopf.setAttribute('aria-label', 'Wunsch vollständig lesen');
 
-      knopf.addEventListener('click', function (ereignis) {
-        ereignis.stopPropagation();
-        zeigePosit(notiz);
-      });
-
-      notiz.addEventListener('click', function () {
-        zeigePosit(notiz);
-      });
-
-      notiz.addEventListener('keydown', function (ereignis) {
-        if (ereignis.key === 'Enter' || ereignis.key === ' ') {
-          ereignis.preventDefault();
-          zeigePosit(notiz);
-        }
-      });
-
-      notiz.setAttribute('tabindex', '0');
-      notiz.setAttribute('role', 'button');
-      notiz.setAttribute('aria-label', 'Wunsch vollständig lesen');
+    var meta = notiz.querySelector('.notiz-meta');
+    if (meta) {
+      meta.appendChild(knopf);
+    } else {
+      notiz.appendChild(knopf);
     }
-  });
+
+    knopf.addEventListener('click', function (ereignis) {
+      ereignis.stopPropagation();
+      zeigePosit(notiz);
+    });
+
+    notiz.addEventListener('click', function () {
+      zeigePosit(notiz);
+    });
+
+    notiz.addEventListener('keydown', function (ereignis) {
+      if (ereignis.key === 'Enter' || ereignis.key === ' ') {
+        ereignis.preventDefault();
+        zeigePosit(notiz);
+      }
+    });
+
+    notiz.setAttribute('tabindex', '0');
+    notiz.setAttribute('role', 'button');
+    notiz.setAttribute('aria-label', 'Wunsch vollständig lesen');
+  }
+
+  document.querySelectorAll('.notiz').forEach(starteUeberlaufPruefung);
+
+  // ---------- Wunsch absenden, ohne die Seite neu zu laden ----------
+  function baueNotiz(eintrag, drehung) {
+    var notiz = document.createElement('article');
+    notiz.className = 'notiz notiz--' + eintrag.bildIndex;
+    notiz.setAttribute('role', 'listitem');
+    notiz.dataset.id = eintrag.id;
+
+    notiz.style.setProperty('--drehung', drehung + 'deg');
+    notiz.style.setProperty('--bild', 'url("' + eintrag.image + '")');
+    notiz.style.setProperty('--aspect', String(eintrag.aspect));
+    notiz.style.setProperty('--schrift', eintrag.schriftFaktor + 'cqw');
+    notiz.style.setProperty('--text-links', eintrag.textBereich.links);
+    notiz.style.setProperty('--text-rechts', eintrag.textBereich.rechts);
+    notiz.style.setProperty('--text-oben', eintrag.textBereich.oben);
+    notiz.style.setProperty('--text-unten', eintrag.textBereich.unten);
+    notiz.style.left = eintrag.x + '%';
+    notiz.style.top = eintrag.y + '%';
+
+    var bereich = document.createElement('div');
+    bereich.className = 'notiz-text-bereich';
+    var absatz = document.createElement('p');
+    absatz.className = 'notiz-text';
+    var inhalt = document.createElement('span');
+    inhalt.className = 'notiz-text-inhalt';
+    inhalt.textContent = eintrag.text;
+    absatz.appendChild(inhalt);
+    bereich.appendChild(absatz);
+    notiz.appendChild(bereich);
+
+    var meta = document.createElement('div');
+    meta.className = 'notiz-meta';
+    var zeit = document.createElement('time');
+    zeit.dateTime = eintrag.createdAt;
+    zeit.textContent = new Date(eintrag.createdAt).toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    meta.appendChild(zeit);
+    notiz.appendChild(meta);
+
+    return notiz;
+  }
+
+  function aktualisiereWunschAnzahl(anzahl) {
+    var text = document.querySelector('.pinnwand-ueberschrift .abschnitt-text');
+    if (!text) return;
+    text.textContent =
+      anzahl +
+      ' ' +
+      (anzahl === 1 ? 'Wunsch' : 'Wünsche') +
+      ' für Manfred hängen gerade an der Wand.';
+  }
+
+  function haengeAnWand(eintrag) {
+    var welt = document.getElementById('pinnwand-welt');
+    if (!welt) return;
+
+    var leerText = welt.querySelector('.pinnwand-leer');
+    if (leerText) {
+      leerText.parentNode.removeChild(leerText);
+    }
+
+    var vorhanden = welt.querySelectorAll('.notiz').length;
+    var drehungen = [-3, 2.5, -1.5, 4, -4.5, 1.5, 3.5, -2.5, 2, -3.5];
+    var notiz = baueNotiz(eintrag, drehungen[vorhanden % drehungen.length]);
+    notiz.classList.add('ist-neu');
+    welt.appendChild(notiz);
+
+    starteUeberlaufPruefung(notiz);
+    aktualisiereWunschAnzahl(vorhanden + 1);
+
+    // Kamera sanft zur neuen Stelle fliegen
+    if (karteApi.flug) {
+      karteApi.flug(eintrag.x, eintrag.y, 0.9);
+    }
+  }
+
+  function initFormularAbsenden() {
+    var formular = document.querySelector('#wunsch-dialog form');
+    if (!formular || !window.fetch) return;
+
+    var dialog = document.getElementById('wunsch-dialog');
+    var absendenKnopf = formular.querySelector('button[type="submit"]');
+
+    formular.addEventListener('submit', function (ereignis) {
+      ereignis.preventDefault();
+
+      var knopfText = absendenKnopf.textContent;
+      absendenKnopf.disabled = true;
+      absendenKnopf.textContent = 'Wird angepinnt …';
+      versteckeFormularFehler();
+
+      fetch(formular.action, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: new URLSearchParams(new FormData(formular))
+      })
+        .then(function (antwort) {
+          return antwort.json();
+        })
+        .then(function (daten) {
+          absendenKnopf.disabled = false;
+          absendenKnopf.textContent = knopfText;
+
+          if (!daten.ok) {
+            zeigeFormularFehler(daten.fehler);
+            return;
+          }
+
+          schliesseDialog(dialog);
+
+          if (feld) {
+            feld.value = '';
+            aktualisiereZaehler();
+          }
+
+          // Pin für den nächsten Wunsch wieder nach unten setzen
+          if (positionswahlApi.setze) {
+            positionswahlApi.setze(50, 94);
+          }
+
+          if (daten.eintrag) {
+            haengeAnWand(daten.eintrag);
+          }
+        })
+        .catch(function () {
+          absendenKnopf.disabled = false;
+          absendenKnopf.textContent = knopfText;
+          zeigeFormularFehler('speicher');
+        });
+    });
+  }
 
   // ---------- Karte: Schwenken & Zoomen ----------
   function initKarte() {
@@ -191,6 +364,7 @@
     var hinweis = document.getElementById('karte-hinweis');
     var hatGepannt = false;
     var klickSperre = false;
+    var flugNummer = 0;
 
     function begrenzeKamera() {
       var vw = viewport.clientWidth;
@@ -228,17 +402,71 @@
       zeichneKamera();
     }
 
-    function zentriereAuf(wxProzent, wyProzent, zoom) {
-      var vw = viewport.clientWidth;
-      var vh = viewport.clientHeight;
+    // Kamerazustand berechnen, ohne die laufende Ansicht zu verändern
+    function zielKamera(wxProzent, wyProzent, zoom) {
+      var alt = { x: kamera.x, y: kamera.y, zoom: kamera.zoom };
 
       kamera.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
-      kamera.x = vw / 2 - (wxProzent / 100) * weltBreite * kamera.zoom;
-      kamera.y = vh / 2 - (wyProzent / 100) * weltHoehe * kamera.zoom;
-
+      kamera.x = viewport.clientWidth / 2 - (wxProzent / 100) * weltBreite * kamera.zoom;
+      kamera.y = viewport.clientHeight / 2 - (wyProzent / 100) * weltHoehe * kamera.zoom;
       begrenzeKamera();
+
+      var ziel = { x: kamera.x, y: kamera.y, zoom: kamera.zoom };
+      kamera.x = alt.x;
+      kamera.y = alt.y;
+      kamera.zoom = alt.zoom;
+      return ziel;
+    }
+
+    function setzeKamera(ziel) {
+      kamera.x = ziel.x;
+      kamera.y = ziel.y;
+      kamera.zoom = ziel.zoom;
       zeichneKamera();
     }
+
+    function zentriereAuf(wxProzent, wyProzent, zoom) {
+      setzeKamera(zielKamera(wxProzent, wyProzent, zoom));
+    }
+
+    // Sanfter Flug zu einer Kartenstelle (wird aus dem Formular heraus aufgerufen)
+    function flugHin(wxProzent, wyProzent, zoom) {
+      var von = { x: kamera.x, y: kamera.y, zoom: kamera.zoom };
+      var ziel = zielKamera(wxProzent, wyProzent, zoom);
+
+      flugNummer += 1;
+      var nummer = flugNummer;
+
+      var reduziert = window.matchMedia
+        ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        : false;
+
+      if (reduziert) {
+        setzeKamera(ziel);
+        return;
+      }
+
+      var start = performance.now();
+
+      function schritt(zeit) {
+        if (nummer !== flugNummer) return; // vom Nutzer unterbrochen
+        var p = Math.min(1, (zeit - start) / 600);
+        var e = 1 - Math.pow(1 - p, 3);
+
+        kamera.x = von.x + (ziel.x - von.x) * e;
+        kamera.y = von.y + (ziel.y - von.y) * e;
+        kamera.zoom = von.zoom + (ziel.zoom - von.zoom) * e;
+        zeichneKamera();
+
+        if (p < 1) {
+          requestAnimationFrame(schritt);
+        }
+      }
+
+      requestAnimationFrame(schritt);
+    }
+
+    karteApi.flug = flugHin;
 
     function versteckeHinweis() {
       if (hinweis) hinweis.hidden = true;
@@ -262,10 +490,7 @@
       mittelY = summeY / notizen.length;
     }
 
-    var startZoom = Math.min(
-      0.9,
-      Math.max(0.28, viewport.clientHeight / 1500)
-    );
+    var startZoom = Math.min(0.9, Math.max(0.28, viewport.clientHeight / 1500));
 
     var neuId = urlParameter.get('neu');
     var neueNotiz = neuId
@@ -301,6 +526,7 @@
     viewport.addEventListener('pointerdown', function (ereignis) {
       if (ereignis.pointerType === 'mouse' && ereignis.button !== 0) return;
 
+      flugNummer += 1; // laufenden Flug abbrechen
       viewport.setPointerCapture(ereignis.pointerId);
       zeiger.set(ereignis.pointerId, { x: ereignis.clientX, y: ereignis.clientY });
       hatGepannt = false;
@@ -398,6 +624,7 @@
       'wheel',
       function (ereignis) {
         ereignis.preventDefault();
+        flugNummer += 1;
         versteckeHinweis();
 
         var rect = viewport.getBoundingClientRect();
@@ -420,6 +647,7 @@
       if (!knopf) return;
 
       knopf.addEventListener('click', function () {
+        flugNummer += 1;
         versteckeHinweis();
         setzeZoom(
           viewport.clientWidth / 2,
@@ -435,11 +663,13 @@
     var knopfUebersicht = document.getElementById('karte-uebersicht');
     if (knopfUebersicht) {
       knopfUebersicht.addEventListener('click', function () {
+        flugNummer += 1;
         versteckeHinweis();
-        var passend = Math.min(
-          viewport.clientWidth / weltBreite,
-          viewport.clientHeight / weltHoehe
-        ) * 0.95;
+        var passend =
+          Math.min(
+            viewport.clientWidth / weltBreite,
+            viewport.clientHeight / weltHoehe
+          ) * 0.95;
         zentriereAuf(50, 50, passend);
       });
     }
@@ -451,34 +681,6 @@
   }
 
   // ---------- Position für den neuen Wunsch wählen ----------
-  function freiePosition(belegtePunkte) {
-    var bester = { x: 50, y: 50 };
-    var besteEntfernung = -1;
-    var i, j, x, y, mindest;
-
-    for (i = 1; i <= 6; i++) {
-      for (j = 1; j <= 4; j++) {
-        x = (i / 7) * 100;
-        y = (j / 5) * 100;
-        mindest = Infinity;
-
-        belegtePunkte.forEach(function (punkt) {
-          var dx = punkt.x - x;
-          var dy = punkt.y - y;
-          var entfernung = dx * dx + dy * dy;
-          if (entfernung < mindest) mindest = entfernung;
-        });
-
-        if (mindest > besteEntfernung) {
-          besteEntfernung = mindest;
-          bester = { x: x, y: y };
-        }
-      }
-    }
-
-    return bester;
-  }
-
   function initPositionswahl() {
     var karte = document.getElementById('mini-karte');
     if (!karte) return;
@@ -486,24 +688,18 @@
     var pin = document.getElementById('mini-pin');
     var feldX = document.getElementById('position-x');
     var feldY = document.getElementById('position-y');
-    var belegtePunkte = [];
-
-    karte.querySelectorAll('.mini-punkt').forEach(function (punkt) {
-      belegtePunkte.push({
-        x: parseFloat(punkt.style.left) || 50,
-        y: parseFloat(punkt.style.top) || 50
-      });
-    });
 
     function setzePosition(x, y) {
       x = Math.min(94, Math.max(6, x));
-      y = Math.min(92, Math.max(8, y));
+      y = Math.min(94, Math.max(8, y));
 
       pin.style.left = x + '%';
       pin.style.top = y + '%';
       feldX.value = String(Math.round(x));
       feldY.value = String(Math.round(y));
     }
+
+    positionswahlApi.setze = setzePosition;
 
     function positionAusEvent(ereignis) {
       var rect = karte.getBoundingClientRect();
@@ -514,6 +710,8 @@
     }
 
     var zieht = false;
+    var modus = null; // 'setzen' (Karte antippen) oder 'verschieben' (Pin greifen)
+    var versatz = { x: 0, y: 0 };
 
     karte.addEventListener('pointerdown', function (ereignis) {
       ereignis.preventDefault();
@@ -521,28 +719,52 @@
       karte.setPointerCapture(ereignis.pointerId);
 
       var position = positionAusEvent(ereignis);
-      setzePosition(position.x, position.y);
+      var istPin =
+        ereignis.target &&
+        ereignis.target.classList &&
+        ereignis.target.classList.contains('mini-pin');
+
+      if (istPin) {
+        // Am festgehaltenen Punkt greifen und mitnehmen – kein Springen
+        modus = 'verschieben';
+        versatz.x = (parseFloat(feldX.value) || 50) - position.x;
+        versatz.y = (parseFloat(feldY.value) || 94) - position.y;
+        pin.classList.add('zieht');
+      } else {
+        // Direkt auf die Karte tippen → Pin wandert dorthin
+        modus = 'setzen';
+        versatz.x = 0;
+        versatz.y = 0;
+        setzePosition(position.x, position.y);
+      }
     });
 
     karte.addEventListener('pointermove', function (ereignis) {
       if (!zieht) return;
+
       var position = positionAusEvent(ereignis);
-      setzePosition(position.x, position.y);
+
+      if (modus === 'verschieben') {
+        setzePosition(position.x + versatz.x, position.y + versatz.y);
+      } else {
+        setzePosition(position.x, position.y);
+      }
     });
 
-    karte.addEventListener('pointerup', function () {
+    function beendeZiehen() {
       zieht = false;
-    });
+      modus = null;
+      pin.classList.remove('zieht');
+    }
 
-    karte.addEventListener('pointercancel', function () {
-      zieht = false;
-    });
+    karte.addEventListener('pointerup', beendeZiehen);
+    karte.addEventListener('pointercancel', beendeZiehen);
 
     // Mit der Tastatur den Pin verschieben
     karte.addEventListener('keydown', function (ereignis) {
       var schritt = ereignis.shiftKey ? 10 : 3;
       var x = parseFloat(feldX.value) || 50;
-      var y = parseFloat(feldY.value) || 50;
+      var y = parseFloat(feldY.value) || 94;
 
       if (ereignis.key === 'ArrowLeft') x -= schritt;
       else if (ereignis.key === 'ArrowRight') x += schritt;
@@ -554,18 +776,18 @@
       setzePosition(x, y);
     });
 
-    // Startposition: wiederhergestellte Koordinaten oder freieste Stelle
+    // Start: Pin unten in der Mitte – oder wiederhergestellte Koordinaten
     var startX = parseFloat(urlParameter.get('x'));
     var startY = parseFloat(urlParameter.get('y'));
 
     if (isFinite(startX) && isFinite(startY)) {
       setzePosition(startX, startY);
     } else {
-      var frei = freiePosition(belegtePunkte);
-      setzePosition(frei.x, frei.y);
+      setzePosition(50, 94);
     }
   }
 
   initKarte();
   initPositionswahl();
+  initFormularAbsenden();
 })();
