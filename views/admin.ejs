@@ -60,6 +60,12 @@
                   <img src="<%= eintrag.image %>" alt="" width="42" height="42" />
                 </span>
 
+                <% if (eintrag.bild) { %>
+                  <span class="admin-bild admin-foto">
+                    <img src="<%= eintrag.bild %>" alt="Angehängtes Bild" />
+                  </span>
+                <% } %>
+
                 <span class="admin-text"><%= eintrag.text %></span>
 
                 <time class="admin-datum" datetime="<%= eintrag.createdAt %>">

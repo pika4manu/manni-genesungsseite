@@ -11,6 +11,15 @@ const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, "storage", "db.json");
 const MAX_TEXT_LENGTH = 600;
 
+// Angehängte Bilder landen neben der Datenbank und werden ausgeliefert
+const BILD_ORDNER = path.join(__dirname, "storage", "bilder");
+const MAX_BILD_BYTES = 3 * 1024 * 1024;
+const BILD_ENDUNGEN = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
 // Extrem toleranter Spamschutz: Honigtopf-Feld + Mindestabstand von 8 Sekunden pro IP
 const SPAM_HONIGTOPF = "homepage";
 const MINDEST_ABSTAND_MS = 8 * 1000;
@@ -39,6 +48,8 @@ const POSIT_BILDER = [
     hoehe: 223,
     textBereich: { links: "11%", rechts: "9%", oben: "25%", unten: "15%" },
     schriftFaktor: 8,
+    fotoBreite: 56,
+    fotoTextOben: 0,
   },
   {
     url: "/img/posit/2.png",
@@ -46,6 +57,8 @@ const POSIT_BILDER = [
     hoehe: 300,
     textBereich: { links: "13%", rechts: "9%", oben: "17%", unten: "20%" },
     schriftFaktor: 7.8,
+    fotoBreite: 56,
+    fotoTextOben: 11,
   },
   {
     url: "/img/posit/3.png",
@@ -53,6 +66,8 @@ const POSIT_BILDER = [
     hoehe: 354,
     textBereich: { links: "24%", rechts: "23%", oben: "17%", unten: "13%" },
     schriftFaktor: 5.3,
+    fotoBreite: 41,
+    fotoTextOben: 16,
   },
 ];
 
@@ -64,8 +79,20 @@ app.set("views", path.join(__dirname, "views"));
 // Statische Dateien (Bilder, CSS, JS) aus ./public
 app.use(express.static(path.join(__dirname, "public")));
 
+// Hochgeladene Wunschbilder aus ./storage/bilder
+app.use(
+  "/bilder",
+  express.static(BILD_ORDNER, {
+    maxAge: "30d",
+    immutable: true,
+    index: false,
+    dotfiles: "deny",
+  }),
+);
+
 // Formulardaten entgegennehmen (POST /wuensche)
-app.use(express.urlencoded({ extended: true }));
+// Der Grenzwert ist großzügig, weil das Bild als Text mitgeschickt wird
+app.use(express.urlencoded({ extended: true, limit: "12mb" }));
 
 // --- Datenzugriff auf storage/db.json ---
 function readEintraege() {
@@ -209,15 +236,91 @@ function mitPositDaten(eintrag) {
   const posit =
     POSIT_BILDER.find((bild) => bild.url === eintrag.image) || POSIT_BILDER[0];
 
+  // Nur Bilder aus unserem eigenen Ordner zulassen
+  const foto =
+    typeof eintrag.bild === "string" && eintrag.bild.indexOf("/bilder/") === 0
+      ? eintrag.bild
+      : null;
+
+  // Mit Bild rutscht der Text ein Stück nach unten, damit das Foto
+  // nicht über die Zeilen ragt
+  const textBereich = Object.assign({}, posit.textBereich);
+  if (foto) {
+    const oben = parseFloat(posit.textBereich.oben) || 0;
+    textBereich.oben = Math.min(45, oben + (posit.fotoTextOben || 0)) + "%";
+  }
+
   return Object.assign({}, eintrag, {
     image: posit.url,
     bildIndex: POSIT_BILDER.indexOf(posit) + 1,
     aspect: Number((posit.breite / posit.hoehe).toFixed(4)),
-    textBereich: posit.textBereich,
+    textBereich: textBereich,
     schriftFaktor: posit.schriftFaktor,
+    fotoBreite: foto ? posit.fotoBreite : 0,
+    bild: foto,
     x: zahl(eintrag.x, 0, 100, 50),
     y: zahl(eintrag.y, 0, 100, 50),
   });
+}
+
+// --- Bilder an Wünsche ---
+
+// Prüft, ob die Bytes wirklich zum angegebenen Bildtyp passen
+function bildPasst(puffer, endung) {
+  if (endung === "jpg") {
+    return puffer.length > 3 && puffer[0] === 0xff && puffer[1] === 0xd8 && puffer[2] === 0xff;
+  }
+  if (endung === "png") {
+    return puffer.length > 8 && puffer.toString("hex", 0, 4) === "89504e47";
+  }
+  if (endung === "webp") {
+    return (
+      puffer.length > 12 &&
+      puffer.toString("ascii", 0, 4) === "RIFF" &&
+      puffer.toString("ascii", 8, 12) === "WEBP"
+    );
+  }
+  return false;
+}
+
+// Legt ein angehängtes Bild in storage/bilder ab und gibt die öffentliche
+// URL zurück. Bei unbrauchbaren Daten kommt null zurück.
+function speichereBild(datenUrl) {
+  const treffer = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(
+    String(datenUrl || "").trim(),
+  );
+  if (!treffer) return null;
+
+  const endung = BILD_ENDUNGEN[treffer[1]];
+  if (!endung) return null;
+
+  const puffer = Buffer.from(treffer[2], "base64");
+  if (!puffer.length || puffer.length > MAX_BILD_BYTES) return null;
+  if (!bildPasst(puffer, endung)) return null;
+
+  // Dateinamen selbst erzeugen – der Name des Uploads wird nie übernommen
+  const name = crypto.randomUUID() + "." + endung;
+
+  try {
+    fs.mkdirSync(BILD_ORDNER, { recursive: true });
+    fs.writeFileSync(path.join(BILD_ORDNER, name), puffer);
+  } catch (fehler) {
+    console.error("Bild konnte nicht gespeichert werden:", fehler.message);
+    return null;
+  }
+
+  return "/bilder/" + name;
+}
+
+// Entfernt ein Bild wieder von der Platte
+function loescheBild(url) {
+  if (typeof url !== "string" || url.indexOf("/bilder/") !== 0) return;
+  const name = path.basename(url);
+  try {
+    fs.unlinkSync(path.join(BILD_ORDNER, name));
+  } catch (fehler) {
+    // Datei schon weg – kein Problem
+  }
 }
 
 // --- Routen ---
@@ -275,6 +378,18 @@ app.post("/wuensche", (req, res) => {
   }
 
   const eintraege = ladeEintraege();
+
+  // Optional hängt ein Bild am Wunsch
+  const bildDaten = (req.body.bild || "").toString();
+  let bildUrl = null;
+
+  if (bildDaten) {
+    bildUrl = speichereBild(bildDaten);
+    if (!bildUrl) {
+      return fehlerAntwort(422, "bild-ungueltig", { text });
+    }
+  }
+
   // Jeder neue Wunsch landet auf dem nächsten freien Posit
   const posit = POSIT_BILDER[eintraege.length % POSIT_BILDER.length];
   const position = zufallsPosition(eintraege);
@@ -287,6 +402,8 @@ app.post("/wuensche", (req, res) => {
     y: position.y,
   };
 
+  if (bildUrl) eintrag.bild = bildUrl;
+
   eintraege.push(eintrag);
 
   try {
@@ -294,6 +411,7 @@ app.post("/wuensche", (req, res) => {
     letzterWunsch.set(req.ip, jetzt);
   } catch (fehler) {
     console.error("db.json konnte nicht gespeichert werden:", fehler.message);
+    loescheBild(bildUrl);
     return fehlerAntwort(500, "speicher", { text });
   }
 
@@ -439,6 +557,9 @@ app.post("/admin/eintraege/:id/loeschen", (req, res) => {
     return res.redirect("/admin");
   }
 
+  const zuLoeschen = readEintraege().filter(
+    (eintrag) => eintrag.id === req.params.id,
+  );
   const eintraege = readEintraege().filter(
     (eintrag) => eintrag.id !== req.params.id,
   );
@@ -448,6 +569,9 @@ app.post("/admin/eintraege/:id/loeschen", (req, res) => {
   } catch (fehler) {
     console.error("db.json konnte nicht gespeichert werden:", fehler.message);
   }
+
+  // Das angehängte Bild wird nicht mehr gebraucht
+  zuLoeschen.forEach((eintrag) => loescheBild(eintrag.bild));
 
   res.redirect("/admin");
 });

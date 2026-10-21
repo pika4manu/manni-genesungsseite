@@ -28,4 +28,18 @@
       }) %>
     </time>
   </div>
+
+  <%# Das angehängte Bild hängt am Rand des Blattes %>
+  <% if (eintrag.bild) { %>
+  <figure class="notiz-foto" style="--foto-breite: <%= eintrag.fotoBreite %>%">
+    <img
+      class="notiz-foto-bild"
+      src="<%= eintrag.bild %>"
+      alt="Zum Wunsch gehörendes Bild"
+      loading="lazy"
+      decoding="async"
+    />
+    <span class="notiz-foto-band" aria-hidden="true"></span>
+  </figure>
+  <% } %>
 </article>

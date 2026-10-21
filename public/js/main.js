@@ -6,12 +6,22 @@
   // Von den Init-Funktionen gefüllt (für Austausch zwischen den Bausteinen)
   var karteApi = { flug: null };
 
+  // Bild-Funktionen des Formulars (werden von initFormularBild gesetzt)
+  var formularBildApi = {
+    aufraeumen: function () {},
+    bereit: Promise.resolve()
+  };
+
   // ---------- Fehlermeldungen ----------
   var FEHLER_TEXTE = {
     leer: 'Bitte schreibe zuerst einen Wunsch auf.',
     'zu-lang': 'Der Wunsch ist zu lang. Maximal 600 Zeichen sind erlaubt.',
     'zu-schnell':
       'Bitte kurz warten – du kannst deinen Wunsch gleich noch einmal anhängen.',
+    'bild-ungueltig':
+      'Dieses Bild lässt sich nicht verwenden. Bitte nimm ein Foto im Format JPG oder PNG.',
+    'bild-zu-gross':
+      'Das Bild ist zu groß. Bitte wähle ein kleineres Foto aus.',
     speicher:
       'Der Wunsch konnte nicht gespeichert werden. Bitte versuche es noch einmal.'
   };
@@ -153,6 +163,18 @@
     });
 
     positText.textContent = notiz.querySelector('.notiz-text-inhalt').textContent;
+
+    // Das angehängte Bild wandert mit auf das Blatt im Dialog
+    var fotoSlot = positBlatt.querySelector('.posit-foto-slot');
+    if (fotoSlot) {
+      fotoSlot.innerHTML = '';
+      var foto = notiz.querySelector('.notiz-foto');
+      if (foto) {
+        var breite = foto.style.getPropertyValue('--foto-breite') || '40%';
+        fotoSlot.appendChild(baueFoto(foto.querySelector('img').src, breite));
+      }
+    }
+
     oeffneDialog(positDialog);
     passeSchriftAnBlatt();
   }
@@ -264,7 +286,34 @@
     meta.appendChild(zeit);
     notiz.appendChild(meta);
 
+    // Das angehängte Bild hängt am Rand des Blattes
+    if (eintrag.bild) {
+      notiz.appendChild(baueFoto(eintrag.bild, (eintrag.fotoBreite || 40) + '%'));
+    }
+
     return notiz;
+  }
+
+  // Baut den kleinen Bilderrahmen mit Klebeband am Rand des Blattes
+  function baueFoto(url, breiteWert) {
+    var rahmen = document.createElement('figure');
+    rahmen.className = 'notiz-foto';
+    rahmen.style.setProperty('--foto-breite', breiteWert || '40%');
+
+    var bild = document.createElement('img');
+    bild.className = 'notiz-foto-bild';
+    bild.src = url;
+    bild.alt = 'Zum Wunsch gehörendes Bild';
+    bild.loading = 'lazy';
+    bild.decoding = 'async';
+    rahmen.appendChild(bild);
+
+    var band = document.createElement('span');
+    band.className = 'notiz-foto-band';
+    band.setAttribute('aria-hidden', 'true');
+    rahmen.appendChild(band);
+
+    return rahmen;
   }
 
   function aktualisiereWunschAnzahl(anzahl) {
@@ -316,11 +365,15 @@
       absendenKnopf.textContent = 'Wird angepinnt …';
       versteckeFormularFehler();
 
-      fetch(formular.action, {
-        method: 'POST',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        body: new URLSearchParams(new FormData(formular))
-      })
+      // Ein Bild wird erst beim Absenden fertig gemacht – vorher warten
+      formularBildApi.bereit
+        .then(function () {
+          return fetch(formular.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new URLSearchParams(new FormData(formular))
+          });
+        })
         .then(function (antwort) {
           return antwort.json();
         })
@@ -340,6 +393,8 @@
             aktualisiereZaehler();
           }
 
+          formularBildApi.aufraeumen();
+
           if (daten.eintrag) {
             haengeAnWand(daten.eintrag);
           }
@@ -350,6 +405,152 @@
           zeigeFormularFehler('speicher');
         });
     });
+  }
+
+  // ---------- Bild an den Wunsch hängen ----------
+  function initFormularBild() {
+    var formular = document.querySelector('#wunsch-dialog form');
+    if (!formular) return;
+
+    var dateiFeld = formular.querySelector('#bild-datei');
+    var datenFeld = formular.querySelector('#formular-bild-daten');
+    var vorschau = formular.querySelector('#formular-bild-vorschau');
+    var miniatur = formular.querySelector('#formular-bild-miniatur');
+    var nameFeld = formular.querySelector('#formular-bild-name');
+    var wegKnopf = formular.querySelector('#formular-bild-weg');
+
+    if (!dateiFeld || !datenFeld) return;
+
+    var MAX_KANTE = 900; // größte Kante des Bildes in Pixeln
+    var QUALITAET = 0.82; // JPEG-Qualität
+    var MAX_UPLOAD = 12 * 1024 * 1024; // Größe der Originaldatei
+
+    // Verkleinert das Bild und gibt es als JPEG-Data-URL zurück
+    function bildVerkleinern(datei) {
+      return new Promise(function (resolve, reject) {
+        var url = URL.createObjectURL(datei);
+        var bild = new Image();
+
+        bild.onload = function () {
+          URL.revokeObjectURL(url);
+
+          var skala = Math.min(1, MAX_KANTE / Math.max(bild.width, bild.height));
+          var breite = Math.max(1, Math.round(bild.width * skala));
+          var hoehe = Math.max(1, Math.round(bild.height * skala));
+
+          var canvas = document.createElement('canvas');
+          canvas.width = breite;
+          canvas.height = hoehe;
+
+          var ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, breite, hoehe);
+          ctx.drawImage(bild, 0, 0, breite, hoehe);
+
+          try {
+            resolve(canvas.toDataURL('image/jpeg', QUALITAET));
+          } catch (fehler) {
+            reject(fehler);
+          }
+        };
+
+        bild.onerror = function () {
+          URL.revokeObjectURL(url);
+          reject(new Error('Bild nicht lesbar'));
+        };
+
+        bild.src = url;
+      });
+    }
+
+    function bildEntfernen() {
+      datenFeld.value = '';
+      dateiFeld.value = '';
+      if (miniatur) miniatur.removeAttribute('src');
+      if (vorschau) vorschau.hidden = true;
+    }
+
+    function dateiUebernehmen(datei) {
+      if (!datei) return;
+
+      if (!/^image\//.test(datei.type || '')) {
+        zeigeFormularFehler('bild-ungueltig');
+        return;
+      }
+
+      if (datei.size > MAX_UPLOAD) {
+        zeigeFormularFehler('bild-zu-gross');
+        return;
+      }
+
+      var arbeit = bildVerkleinern(datei)
+        .then(function (datenUrl) {
+          datenFeld.value = datenUrl;
+          if (miniatur) miniatur.src = datenUrl;
+          if (nameFeld) nameFeld.textContent = datei.name || 'Bild';
+          if (vorschau) vorschau.hidden = false;
+          versteckeFormularFehler();
+        })
+        .catch(function () {
+          bildEntfernen();
+          zeigeFormularFehler('bild-ungueltig');
+        });
+
+      formularBildApi.bereit = arbeit;
+      formularBildApi.aufraeumen = bildEntfernen;
+    }
+
+    dateiFeld.addEventListener('change', function () {
+      dateiUebernehmen(dateiFeld.files && dateiFeld.files[0]);
+    });
+
+    if (wegKnopf) {
+      wegKnopf.addEventListener('click', function () {
+        bildEntfernen();
+      });
+    }
+
+    // Bild auf das Formular ziehen
+    ['dragenter', 'dragover'].forEach(function (name) {
+      formular.addEventListener(name, function (ereignis) {
+        ereignis.preventDefault();
+        ereignis.stopPropagation();
+        formular.classList.add('zieht-bild');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(function (name) {
+      formular.addEventListener(name, function () {
+        formular.classList.remove('zieht-bild');
+      });
+    });
+
+    formular.addEventListener('drop', function (ereignis) {
+      ereignis.preventDefault();
+      ereignis.stopPropagation();
+      var dateien = ereignis.dataTransfer && ereignis.dataTransfer.files;
+      if (dateien && dateien.length) dateiUebernehmen(dateien[0]);
+    });
+
+    // Bild aus der Zwischenablage einfügen
+    formular.addEventListener('paste', function (ereignis) {
+      var eintraege = ereignis.clipboardData && ereignis.clipboardData.items;
+      if (!eintraege) return;
+
+      for (var i = 0; i < eintraege.length; i++) {
+        var eintrag = eintraege[i];
+        if (eintrag.type && eintrag.type.indexOf('image') === 0) {
+          var datei = eintrag.getAsFile();
+          if (datei) {
+            ereignis.preventDefault();
+            dateiUebernehmen(datei);
+            return;
+          }
+        }
+      }
+    });
+
+    formularBildApi.aufraeumen = bildEntfernen;
   }
 
   // ---------- Karte: Schwenken & Zoomen ----------
@@ -841,4 +1042,5 @@
 
   initKarte();
   initFormularAbsenden();
+  initFormularBild();
 })();

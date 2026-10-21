@@ -12,6 +12,32 @@
   <span class="zeichenzaehler"><span id="zeichenzaehler-stand">0</span> / 600 Zeichen</span>
 </div>
 
+<div class="formular-bild">
+  <label class="formular-label" for="bild-datei">Bild anhängen <span class="formular-optional">(freiwillig)</span></label>
+  <input
+    class="formular-bild-datei"
+    type="file"
+    id="bild-datei"
+    accept="image/*"
+  />
+  <p class="formular-hinweis">
+    Foto auswählen, mit Strg+V einfügen oder auf das Formular ziehen.
+  </p>
+
+  <div class="formular-bild-vorschau" id="formular-bild-vorschau" hidden>
+    <img id="formular-bild-miniatur" alt="Vorschau des angehängten Bildes" />
+    <div class="formular-bild-infos">
+      <span class="formular-bild-name" id="formular-bild-name"></span>
+      <button type="button" class="knopf-neutral" id="formular-bild-weg">
+        Bild entfernen
+      </button>
+    </div>
+  </div>
+</div>
+
+<%# Das fertige (verkleinerte) Bild wird als Text mitgeschickt %>
+<input type="hidden" name="bild" id="formular-bild-daten" value="" />
+
 <%# Honigtopf: Menschen ignorieren dieses Feld, Spam-Bots füllen es aus %>
 <div class="spamschutz" aria-hidden="true" hidden>
   <label for="homepage">Homepage</label>
