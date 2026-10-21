@@ -135,6 +135,8 @@
 
   function zeigePosit(notiz) {
     if (!positDialog || !positBlatt || !positText) return;
+    if (positDialog.open) return; // das Blatt ist schon offen
+    if (!notiz || !notiz.querySelector('.notiz-text-inhalt')) return;
 
     var stil = window.getComputedStyle(notiz);
     var eigenschaften = [
@@ -629,12 +631,8 @@
       flugNummer += 1; // laufenden Flug abbrechen
       stoppeTraegheit();
 
-      try {
-        viewport.setPointerCapture(ereignis.pointerId);
-      } catch (fehler) {
-        // Manche Browser verweigern das Fangen des Zeigers – das Schwenken klappt trotzdem
-      }
-
+      // Wichtig: der Zeiger wird hier noch NICHT gefangen – sonst landet
+      // der Klick auf der Karte statt auf dem Wunsch darunter
       zeiger.set(ereignis.pointerId, { x: ereignis.clientX, y: ereignis.clientY });
       hatGepannt = false;
       klickSperre = false;
@@ -680,6 +678,15 @@
           if (Math.hypot(dx, dy) <= PAN_SCHWELLE) return;
 
           hatGepannt = true;
+
+          // Erst jetzt den Zeiger fangen, damit das Schwenken auch weiterläuft,
+          // wenn der Finger den Rand der Karte verlässt
+          try {
+            viewport.setPointerCapture(ereignis.pointerId);
+          } catch (fehler) {
+            // Manche Browser verweigern das Fangen – das Schwenken klappt trotzdem
+          }
+
           startMaus = { x: ereignis.clientX, y: ereignis.clientY };
           startKamera = { x: kamera.x, y: kamera.y };
           dx = 0;
@@ -726,10 +733,14 @@
           klickSperre = true;
           if (ereignis.type === 'pointerup') starteTraegheit();
         } else if (ereignis.type === 'pointerup') {
-          // Ein Tippen auf die Wand zählt – auf einem Wunsch nicht
-          var aufWunsch =
-            startZiel && startZiel.closest && startZiel.closest('.notiz');
-          if (!aufWunsch) {
+          // Ein Tippen auf einen Wunsch öffnet das Blatt – ein Tippen auf die
+          // Wand zählt als Doppelklick für den Zoom
+          var notizElement =
+            startZiel && startZiel.closest ? startZiel.closest('.notiz') : null;
+
+          if (notizElement) {
+            zeigePosit(notizElement);
+          } else {
             registriereTipp(letzteFinger.x, letzteFinger.y);
           }
         }
