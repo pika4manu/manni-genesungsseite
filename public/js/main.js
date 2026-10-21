@@ -381,6 +381,9 @@
     function setzeWeltGroesse() {
       welt.style.setProperty('--welt-breite', weltBreite + 'px');
       welt.style.setProperty('--welt-hoehe', weltHoehe + 'px');
+      // Für den Viewport nötig: dort läuft die Textur in Weltkoordinaten weiter
+      viewport.style.setProperty('--welt-breite', weltBreite + 'px');
+      viewport.style.setProperty('--welt-hoehe', weltHoehe + 'px');
     }
 
     setzeWeltGroesse();
@@ -422,6 +425,12 @@
     function zeichneKamera() {
       welt.style.transform =
         'translate(' + kamera.x + 'px, ' + kamera.y + 'px) scale(' + kamera.zoom + ')';
+
+      // Die Korktextur des Viewports wird exakt an der Welt ausgerichtet,
+      // damit sie über den Weltrand hinaus nahtlos weiterläuft
+      viewport.style.setProperty('--kamera-x', kamera.x + 'px');
+      viewport.style.setProperty('--kamera-y', kamera.y + 'px');
+      viewport.style.setProperty('--kamera-zoom', kamera.zoom);
     }
 
     function setzeZoom(bildX, bildY, neueZoom) {

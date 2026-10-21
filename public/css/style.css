@@ -213,7 +213,33 @@ body {
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   background-color: #d2b88f;
-  box-shadow: var(--schatten);
+  /* Der Kork läuft in Weltkoordinaten weiter, damit rund um die Wand
+     keine leere Fläche entsteht */
+  background-image:
+    radial-gradient(
+      ellipse 75% 65% at 24% 14%,
+      rgba(255, 231, 172, 0.16),
+      rgba(255, 231, 172, 0) 70%
+    ),
+    radial-gradient(
+      ellipse 85% 75% at 78% 86%,
+      rgba(101, 73, 34, 0.16),
+      rgba(101, 73, 34, 0) 70%
+    ),
+    var(--kork-textur, url("/img/pinn_wand.png"));
+  background-size:
+    calc(var(--welt-breite, 3200px) * var(--kamera-zoom, 1))
+      calc(var(--welt-hoehe, 2100px) * var(--kamera-zoom, 1)),
+    calc(var(--welt-breite, 3200px) * var(--kamera-zoom, 1))
+      calc(var(--welt-hoehe, 2100px) * var(--kamera-zoom, 1)),
+    calc(var(--kork-groesse, 100%) * var(--kamera-zoom, 1))
+      calc(var(--kork-groesse, 100%) * var(--kamera-zoom, 1));
+  background-position:
+    var(--kamera-x, 0px) var(--kamera-y, 0px),
+    var(--kamera-x, 0px) var(--kamera-y, 0px),
+    var(--kamera-x, 0px) var(--kamera-y, 0px);
+  background-repeat: no-repeat, no-repeat, repeat;
+  box-shadow: var(--schatten), inset 0 0 120px rgba(74, 56, 32, 0.30);
 }
 
 .pinnwand-viewport:active {
@@ -228,12 +254,22 @@ body {
   height: var(--welt-hoehe, 2100px);
   transform-origin: 0 0;
   transform: translate(-1100px, -620px) scale(0.55);
-  background-color: var(--kork-hell);
-  background-image: url("/img/pinn_wand.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  box-shadow: inset 0 0 120px rgba(74, 56, 32, 0.35);
+  background-color: #d7b87f;
+  background-image:
+    radial-gradient(
+      ellipse 75% 65% at 24% 14%,
+      rgba(255, 231, 172, 0.16),
+      rgba(255, 231, 172, 0) 70%
+    ),
+    radial-gradient(
+      ellipse 85% 75% at 78% 86%,
+      rgba(101, 73, 34, 0.16),
+      rgba(101, 73, 34, 0) 70%
+    ),
+    var(--kork-textur, url("/img/pinn_wand.png"));
+  background-size: cover, cover, var(--kork-groesse, 100%);
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-position: center, center, 0 0;
   will-change: transform;
 }
 
