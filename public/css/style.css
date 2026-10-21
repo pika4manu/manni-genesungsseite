@@ -208,8 +208,10 @@ body {
   overflow: hidden;
   cursor: grab;
   touch-action: none;
+  overscroll-behavior: contain;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
   background-color: #d2b88f;
   box-shadow: var(--schatten);
 }
@@ -307,6 +309,10 @@ body {
   pointer-events: none;
 }
 
+.hinweis-touch {
+  display: none;
+}
+
 /* ---------- Ein Wunsch auf einem Posit ---------- */
 .notiz {
   position: absolute;
@@ -318,6 +324,10 @@ body {
   transform: translate(-50%, -50%) rotate(var(--drehung, 0deg));
   transition: transform 0.2s ease, filter 0.2s ease;
   container-type: inline-size;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 
 .notiz--1 {
@@ -495,6 +505,7 @@ body {
   width: 100%;
   resize: vertical;
   font: inherit;
+  font-size: 1rem;
   color: inherit;
   padding: 0.85rem 1rem;
   border-radius: 10px;
@@ -700,27 +711,66 @@ body {
 
 /* ---------- Kleinere Bildschirme ---------- */
 @media (max-width: 720px) {
+  .seitenkopf-inhalt {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+    padding: 0.6rem 0.9rem;
+  }
+
+  .seitenkopf-inhalt > .knoepf {
+    width: 100%;
+    min-height: 46px;
+  }
+
   .seitenkopf h1 {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
   }
 
   .untertitel {
     display: none;
   }
 
+  .seite {
+    padding: 0.75rem 0.9rem 1rem;
+  }
+
   .pinnwand-ueberschrift {
     position: static;
     max-width: none;
     margin-bottom: 0.9rem;
+    padding: 0.7rem 0.85rem;
   }
 
   .pinnwand-viewport {
-    min-height: max(340px, calc(100dvh - 280px));
+    flex: 0 0 auto;
+    height: 62dvh;
+    min-height: 340px;
+    max-height: 76dvh;
+    border-radius: 10px;
+  }
+
+  .notiz--1 {
+    --breite: 210px;
+  }
+
+  .notiz--2 {
+    --breite: 250px;
+  }
+
+  .notiz--3 {
+    --breite: 320px;
   }
 
   .karte-steuerung {
     right: 0.6rem;
     bottom: 0.6rem;
+  }
+
+  .karte-knopf {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
   }
 
   .karte-hinweis {
@@ -741,7 +791,55 @@ body {
   }
 
   .dialog-formular {
-    padding: 1.2rem 1rem 1.5rem;
+    padding: 1.2rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  .dialog-aktionen .knoepf {
+    flex: 1 1 12rem;
+    min-height: 48px;
+  }
+
+  .posit-blatt {
+    width: min(46rem, 92vw);
+  }
+
+  .posit-blatt .notiz-text-inhalt {
+    font-size: 5.2cqw;
+  }
+
+  .seitenfuss p {
+    padding: 0.9rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Auf Touch-Geräten bleibt der Hover-Zustand sonst „kleben“ */
+@media (hover: none) {
+  .hinweis-maus {
+    display: none;
+  }
+
+  .hinweis-touch {
+    display: inline;
+  }
+
+  .notiz:hover {
+    transform: translate(-50%, -50%) rotate(var(--drehung, 0deg));
+    filter: none;
+    z-index: auto;
+  }
+
+  .notiz.ist-zu-lang:hover {
+    transform: translate(-50%, -50%) rotate(var(--drehung, 0deg));
+  }
+
+  .knoepf:hover {
+    transform: none;
+    box-shadow: 0 4px 0 #8d3e2d, 0 8px 18px rgba(120, 50, 35, 0.25);
+  }
+
+  .karte-knopf:hover {
+    transform: none;
+    background: rgba(255, 253, 248, 0.92);
   }
 }
 

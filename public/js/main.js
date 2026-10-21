@@ -348,17 +348,46 @@
     var welt = document.getElementById('pinnwand-welt');
     if (!viewport || !welt) return;
 
-    var weltBreite = parseFloat(viewport.dataset.weltBreite) || 3200;
-    var weltHoehe = parseFloat(viewport.dataset.weltHoehe) || 2100;
     var MIN_ZOOM = 0.1;
     var MAX_ZOOM = 2.5;
     var RAND = 60;
+
+    // Auf kleinen Bildschirmen wird die Wand kleiner gerechnet – die Wünsche
+    // wirken dadurch größer und sind besser zu lesen
+    function weltMasse() {
+      var klein = window.innerWidth <= 720;
+      var faktor = klein ? 0.75 : 1;
+      return {
+        breite: (parseFloat(viewport.dataset.weltBreite) || 3200) * faktor,
+        hoehe: (parseFloat(viewport.dataset.weltHoehe) || 2100) * faktor
+      };
+    }
+
+    var masse = weltMasse();
+    var weltBreite = masse.breite;
+    var weltHoehe = masse.hoehe;
+
+    function setzeWeltGroesse() {
+      welt.style.setProperty('--welt-breite', weltBreite + 'px');
+      welt.style.setProperty('--welt-hoehe', weltHoehe + 'px');
+    }
+
+    setzeWeltGroesse();
 
     var kamera = { x: 0, y: 0, zoom: 0.5 };
     var hinweis = document.getElementById('karte-hinweis');
     var hatGepannt = false;
     var klickSperre = false;
     var flugNummer = 0;
+
+    // Wischen auf dem Handy soll sich wie eine echte Karte anfühlen
+    var tempoX = 0;
+    var tempoY = 0;
+    var traegheitNummer = 0;
+    var letzteFinger = { x: 0, y: 0 };
+    var letzteZeit = 0;
+    var letzterTipp = { zeit: 0, x: 0, y: 0 };
+    var startZiel = null;
 
     function begrenzeKamera() {
       var vw = viewport.clientWidth;
@@ -425,6 +454,7 @@
 
     // Sanfter Flug zu einer Kartenstelle (wird aus dem Formular heraus aufgerufen)
     function flugHin(wxProzent, wyProzent, zoom) {
+      stoppeTraegheit();
       var von = { x: kamera.x, y: kamera.y, zoom: kamera.zoom };
       var ziel = zielKamera(wxProzent, wyProzent, zoom);
 
@@ -462,6 +492,70 @@
 
     karteApi.flug = flugHin;
 
+    // ---------- Trägheit beim Wischen ----------
+    function stoppeTraegheit() {
+      traegheitNummer += 1;
+      tempoX = 0;
+      tempoY = 0;
+    }
+
+    function starteTraegheit() {
+      if (Math.abs(tempoX) < 0.08 && Math.abs(tempoY) < 0.08) return;
+
+      traegheitNummer += 1;
+      var nummer = traegheitNummer;
+      var zeit = performance.now();
+
+      function schritt(jetzt) {
+        if (nummer !== traegheitNummer) return;
+
+        var dauer = Math.min(34, jetzt - zeit);
+        zeit = jetzt;
+
+        kamera.x += tempoX * dauer;
+        kamera.y += tempoY * dauer;
+
+        var bremsung = Math.pow(0.93, dauer / 16);
+        tempoX *= bremsung;
+        tempoY *= bremsung;
+
+        begrenzeKamera();
+        zeichneKamera();
+
+        if (Math.abs(tempoX) > 0.02 || Math.abs(tempoY) > 0.02) {
+          requestAnimationFrame(schritt);
+        }
+      }
+
+      requestAnimationFrame(schritt);
+    }
+
+    // ---------- Doppeltipp: hinein- oder herauszoomen ----------
+    function registriereTipp(x, y) {
+      var jetzt = performance.now();
+
+      if (jetzt - letzterTipp.zeit < 320) {
+        letzterTipp.zeit = 0;
+
+        var weltX = (x - kamera.x) / kamera.zoom;
+        var weltY = (y - kamera.y) / kamera.zoom;
+
+        if (kamera.zoom < 0.8) {
+          flugHin((weltX / weltBreite) * 100, (weltY / weltHoehe) * 100, 1.4);
+        } else {
+          var passend =
+            Math.min(
+              viewport.clientWidth / weltBreite,
+              viewport.clientHeight / weltHoehe
+            ) * 0.95;
+          flugHin(50, 50, passend);
+        }
+        return;
+      }
+
+      letzterTipp = { zeit: jetzt, x: x, y: y };
+    }
+
     function versteckeHinweis() {
       if (hinweis) hinweis.hidden = true;
     }
@@ -484,7 +578,10 @@
       mittelY = summeY / notizen.length;
     }
 
-    var startZoom = Math.min(0.9, Math.max(0.28, viewport.clientHeight / 1500));
+    var startZoom =
+      window.innerWidth <= 720
+        ? Math.min(0.7, Math.max(0.45, viewport.clientWidth / 560))
+        : Math.min(0.9, Math.max(0.28, viewport.clientHeight / 1500));
 
     var neuId = urlParameter.get('neu');
     var neueNotiz = neuId
@@ -521,11 +618,24 @@
       if (ereignis.pointerType === 'mouse' && ereignis.button !== 0) return;
 
       flugNummer += 1; // laufenden Flug abbrechen
-      viewport.setPointerCapture(ereignis.pointerId);
+      stoppeTraegheit();
+
+      try {
+        viewport.setPointerCapture(ereignis.pointerId);
+      } catch (fehler) {
+        // Manche Browser verweigern das Fangen des Zeigers – das Schwenken klappt trotzdem
+      }
+
       zeiger.set(ereignis.pointerId, { x: ereignis.clientX, y: ereignis.clientY });
       hatGepannt = false;
       klickSperre = false;
       versteckeHinweis();
+
+      letzteFinger = { x: ereignis.clientX, y: ereignis.clientY };
+      letzteZeit = performance.now();
+      tempoX = 0;
+      tempoY = 0;
+      startZiel = ereignis.target;
 
       if (zeiger.size === 1) {
         startMaus = { x: ereignis.clientX, y: ereignis.clientY };
@@ -545,6 +655,13 @@
       zeiger.set(ereignis.pointerId, { x: ereignis.clientX, y: ereignis.clientY });
 
       if (zeiger.size === 1 && startMaus && startKamera) {
+        var jetzt = performance.now();
+        var dauer = Math.max(1, jetzt - letzteZeit);
+        tempoX = (ereignis.clientX - letzteFinger.x) / dauer;
+        tempoY = (ereignis.clientY - letzteFinger.y) / dauer;
+        letzteFinger = { x: ereignis.clientX, y: ereignis.clientY };
+        letzteZeit = jetzt;
+
         var dx = ereignis.clientX - startMaus.x;
         var dy = ereignis.clientY - startMaus.y;
 
@@ -590,6 +707,14 @@
       } else if (zeiger.size === 0) {
         if (hatGepannt) {
           klickSperre = true;
+          if (ereignis.type === 'pointerup') starteTraegheit();
+        } else if (ereignis.type === 'pointerup') {
+          // Ein Tippen auf die Wand zählt – auf einem Wunsch nicht
+          var aufWunsch =
+            startZiel && startZiel.closest && startZiel.closest('.notiz');
+          if (!aufWunsch) {
+            registriereTipp(letzteFinger.x, letzteFinger.y);
+          }
         }
         startMaus = null;
         startKamera = null;
@@ -669,6 +794,25 @@
     }
 
     window.addEventListener('resize', function () {
+      var neu = weltMasse();
+
+      if (neu.breite !== weltBreite || neu.hoehe !== weltHoehe) {
+        // Die Wand wurde neu vermessen – die Kamera bleibt auf derselben Stelle
+        var zentrumX =
+          ((kamera.x + viewport.clientWidth / 2) / (weltBreite * kamera.zoom)) * 100;
+        var zentrumY =
+          ((kamera.y + viewport.clientHeight / 2) / (weltHoehe * kamera.zoom)) * 100;
+
+        weltBreite = neu.breite;
+        weltHoehe = neu.hoehe;
+        setzeWeltGroesse();
+
+        kamera.x =
+          viewport.clientWidth / 2 - (zentrumX / 100) * weltBreite * kamera.zoom;
+        kamera.y =
+          viewport.clientHeight / 2 - (zentrumY / 100) * weltHoehe * kamera.zoom;
+      }
+
       begrenzeKamera();
       zeichneKamera();
     });
