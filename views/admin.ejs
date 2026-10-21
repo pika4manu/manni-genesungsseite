@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <%- include('resources/head.ejs', { titel: titel, description: 'Verwaltung der Genesungsseite' }) %>
+  </head>
+
+  <body>
+    <%- include('resources/header.ejs', { fehler: null }) %>
+
+    <main class="seite">
+      <section class="leerseite verwaltung">
+        <h2 class="abschnitt-titel">Verwaltung</h2>
+
+        <% if (!angemeldet) { %>
+          <p class="abschnitt-text">
+            Für diesen Bereich brauchst du das Admin-Passwort.
+          </p>
+
+          <% if (loginFehler) { %>
+            <p class="hinweis hinweis-fehler" role="alert">
+              <% if (loginFehler === 'gesperrt') { %>
+                Zu viele Fehlversuche. Bitte in ein paar Minuten erneut versuchen.
+              <% } else { %>
+                Das Passwort ist leider falsch.
+              <% } %>
+            </p>
+          <% } %>
+
+          <form class="admin-formular" method="post" action="/admin/login">
+            <label class="formular-label" for="passwort">Admin-Passwort</label>
+            <input
+              class="admin-eingabe"
+              type="password"
+              id="passwort"
+              name="passwort"
+              required
+              autocomplete="current-password"
+            />
+            <button class="knoepf" type="submit">Anmelden</button>
+          </form>
+        <% } else { %>
+          <div class="verwaltung-kopf">
+            <p class="abschnitt-text">
+              Angemeldet. Hier sind <%= eintraege.length %>
+              <%= eintraege.length === 1 ? 'Wunsch' : 'Wünsche' %> auf der Pinnwand.
+            </p>
+            <form method="post" action="/admin/logout">
+              <button class="knoepf knoepf-neutral" type="submit">Abmelden</button>
+            </form>
+          </div>
+
+          <ul class="admin-liste">
+            <% eintraege.forEach(function (eintrag) { %>
+              <li class="admin-eintrag">
+                <span class="admin-bild">
+                  <img src="<%= eintrag.image %>" alt="" width="42" height="42" />
+                </span>
+
+                <span class="admin-text"><%= eintrag.text %></span>
+
+                <time class="admin-datum" datetime="<%= eintrag.createdAt %>">
+                  <%= new Date(eintrag.createdAt).toLocaleString('de-DE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) %>
+                </time>
+
+                <form method="post" action="/admin/eintraege/<%= eintrag.id %>/loeschen">
+                  <button class="knoepf knoepf-neutral" type="submit">Löschen</button>
+                </form>
+              </li>
+            <% }); %>
+          </ul>
+
+          <% if (eintraege.length === 0) { %>
+            <p class="abschnitt-text">Auf der Pinnwand ist noch nichts.</p>
+          <% } %>
+        <% } %>
+      </section>
+    </main>
+
+    <%- include('resources/footer.ejs') %>
+    <%- include('resources/scripts.ejs') %>
+  </body>
+</html>

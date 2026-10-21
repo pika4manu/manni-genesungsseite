@@ -1,0 +1,14 @@
+{
+  "name": "gennesungsseite",
+  "version": "1.0.0",
+  "description": "Pinnwand für Genesungswünsche an Herrn Gerstgrasser",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.8",
+    "ejs": "^7.0.2",
+    "express": "^5.3.0"
+  }
+}

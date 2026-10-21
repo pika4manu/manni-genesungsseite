@@ -1,0 +1,613 @@
+:root {
+  --creme: #faf6ef;
+  --creme-hell: #fffdf8;
+  --kork-hell: #e8d7b7;
+  --text: #3d342a;
+  --text-leise: #7a6c5b;
+  --tinte: #4a3a10;
+  --gruen: #5f7d5a;
+  --rot: #b4543f;
+  --schatten: 0 10px 30px rgba(74, 56, 32, 0.18);
+  --radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 15% 10%, #fffdf6 0%, transparent 45%),
+    radial-gradient(circle at 85% 0%, #f3ece0 0%, transparent 40%),
+    var(--creme);
+  line-height: 1.6;
+}
+
+/* ---------- Seitenkopf ---------- */
+.seitenkopf {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(250, 246, 239, 0.94);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(138, 98, 54, 0.18);
+}
+
+.seitenkopf-inhalt {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0.8rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem 1.25rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.seitenkopf-titel {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.seitenkopf h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  letter-spacing: 0.01em;
+}
+
+.untertitel {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-leise);
+}
+
+.navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.navigation a {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  border: 1px solid rgba(138, 98, 54, 0.25);
+  background: rgba(255, 255, 255, 0.6);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.navigation a:hover {
+  background: var(--creme-hell);
+  transform: translateY(-1px);
+}
+
+/* ---------- Knöpfe ---------- */
+.knoepf {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 999px;
+  padding: 0.6rem 1.4rem;
+  color: #fffaf3;
+  background: linear-gradient(180deg, #c96a4f, var(--rot));
+  box-shadow: 0 4px 0 #8d3e2d, 0 8px 18px rgba(120, 50, 35, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.knoepf:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 #8d3e2d, 0 10px 20px rgba(120, 50, 35, 0.28);
+}
+
+.knoepf:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #8d3e2d;
+}
+
+.knoepf-neutral {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(138, 98, 54, 0.35);
+  box-shadow: none;
+}
+
+.knoepf-neutral:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(74, 56, 32, 0.15);
+}
+
+.knoepf-als-link {
+  display: inline-block;
+  text-decoration: none;
+}
+
+/* ---------- Layout: die ganze Bildschirmfläche gehört der Leinwand ---------- */
+.seite {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.pinnwand-abschnitt {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pinnwand-ueberschrift {
+  position: absolute;
+  z-index: 3;
+  top: 1.25rem;
+  left: 1.5rem;
+  max-width: min(30rem, 60%);
+  padding: 0.9rem 1.1rem;
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.82);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 8px 20px rgba(74, 56, 32, 0.18);
+}
+
+.pinnwand-ueberschrift .abschnitt-titel {
+  font-size: 1.4rem;
+}
+
+.pinnwand-ueberschrift .abschnitt-text {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.leerseite {
+  background: var(--creme-hell);
+  border: 1px solid rgba(138, 98, 54, 0.18);
+  border-radius: var(--radius);
+  padding: 2rem;
+  box-shadow: var(--schatten);
+}
+
+.abschnitt-titel {
+  margin: 0 0 0.35rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.75rem;
+}
+
+.abschnitt-text {
+  margin: 0 0 1.25rem;
+  color: var(--text-leise);
+  max-width: 60ch;
+}
+
+/* ---------- Pinnwand ---------- */
+.pinnwand {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: max(calc(100vh - 190px), var(--board-hoehe, 0px));
+  border-radius: var(--radius);
+  background-color: var(--kork-hell);
+  background-image: url("/img/pinn_wand.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: var(--schatten), inset 0 0 80px rgba(74, 56, 32, 0.3);
+  overflow: hidden;
+}
+
+.pinnwand-leer {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: #6b5433;
+  font-style: italic;
+}
+
+/* ---------- Ein Wunsch auf einem Posit ---------- */
+.notiz {
+  position: absolute;
+  width: var(--breite);
+  aspect-ratio: var(--aspect);
+  background-image: var(--bild);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  transform: translate(-50%, -50%) rotate(var(--drehung, 0deg));
+  transition: transform 0.2s ease, filter 0.2s ease;
+  container-type: inline-size;
+}
+
+.notiz--1 {
+  --breite: clamp(140px, 12vw, 200px);
+}
+
+.notiz--2 {
+  --breite: clamp(155px, 13.5vw, 235px);
+}
+
+.notiz--3 {
+  --breite: clamp(190px, 17vw, 300px);
+}
+
+.notiz:hover {
+  transform: translate(-50%, -50%) rotate(0deg) scale(1.05);
+  filter: drop-shadow(0 14px 18px rgba(74, 56, 32, 0.45));
+  z-index: 5;
+}
+
+.notiz-text-bereich {
+  position: absolute;
+  left: var(--text-links);
+  right: var(--text-rechts);
+  top: var(--text-oben);
+  bottom: var(--text-unten);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.notiz-text {
+  margin: 0;
+  text-align: center;
+  color: var(--tinte);
+  font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive;
+  line-height: 1.3;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.notiz-text-inhalt {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: clamp(0.8rem, 1.05vw, 1.2rem);
+  font-size: var(--schrift, 6cqw);
+}
+
+.notiz-meta {
+  position: absolute;
+  left: var(--text-links);
+  right: var(--text-rechts);
+  bottom: calc(var(--text-unten) * 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 0.68rem;
+  color: #6a5a33;
+}
+
+.notiz.ist-zu-lang {
+  cursor: pointer;
+}
+
+.notiz.ist-zu-lang:hover {
+  transform: translate(-50%, -50%) rotate(0deg) scale(1.05);
+}
+
+.notiz-mehr {
+  font: inherit;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 0.68rem;
+  cursor: pointer;
+  color: #6a5a33;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(122, 98, 52, 0.35);
+  border-radius: 999px;
+  padding: 0 0.45rem;
+  line-height: 1.5;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.notiz-mehr:hover {
+  color: var(--rot);
+  border-color: var(--rot);
+}
+
+/* ---------- Pop-up (Dialog) ---------- */
+.dialog {
+  width: min(54rem, 98vw);
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  background: var(--creme-hell);
+  color: var(--text);
+  box-shadow: 0 30px 70px rgba(40, 28, 12, 0.45);
+}
+
+.dialog::backdrop {
+  background: rgba(46, 34, 18, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.dialog-formular {
+  padding: 1.6rem;
+}
+
+.dialog-titel {
+  margin: 0 0 0.4rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.5rem;
+}
+
+.dialog-text {
+  margin: 0 0 1.1rem;
+  color: var(--text-leise);
+  font-size: 0.95rem;
+}
+
+.dialog-aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 1.1rem;
+}
+
+/* ---------- Pop-up mit dem ganzen Posit ---------- */
+.dialog-posit {
+  width: min(58rem, 94vw);
+}
+
+.posit-blatt {
+  position: relative;
+  width: min(46rem, 84vw);
+  aspect-ratio: var(--aspect, 1);
+  margin: 0 auto;
+  background-image: var(--bild);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 14px 22px rgba(74, 56, 32, 0.35));
+  container-type: inline-size;
+}
+
+.posit-blatt .notiz-text-bereich {
+  overflow: auto;
+}
+
+.posit-blatt .notiz-text-inhalt {
+  display: block;
+  -webkit-line-clamp: none;
+  overflow: visible;
+  font-size: clamp(1rem, 1.6vw, 1.5rem);
+  font-size: 4.4cqw;
+}
+
+.formular-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.notiz-formular textarea,
+.dialog-formular textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  color: inherit;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(138, 98, 54, 0.35);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 27px,
+      rgba(138, 98, 54, 0.12) 27px 28px
+    ),
+    #fffefb;
+  box-shadow: inset 0 1px 3px rgba(74, 56, 32, 0.08);
+}
+
+.notiz-formular textarea:focus,
+.dialog-formular textarea:focus {
+  outline: 2px solid var(--gruen);
+  outline-offset: 1px;
+}
+
+.formular-zeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.zeichenzaehler {
+  font-size: 0.85rem;
+  color: var(--text-leise);
+}
+
+.hinweis {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.95rem;
+  border-radius: 10px;
+  font-size: 0.92rem;
+}
+
+.hinweis-fehler {
+  background: #fdeeea;
+  border: 1px solid rgba(180, 84, 63, 0.4);
+  color: #8d3e2d;
+}
+
+/* ---------- Verwaltungsbereich /admin ---------- */
+.verwaltung {
+  max-width: 60rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.verwaltung-kopf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.verwaltung-kopf .abschnitt-text {
+  margin-bottom: 0;
+}
+
+.admin-formular {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  max-width: 28rem;
+}
+
+.admin-formular .formular-label {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.admin-eingabe {
+  flex: 1 1 12rem;
+  font: inherit;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid rgba(138, 98, 54, 0.35);
+  background: #fffefb;
+}
+
+.admin-eingabe:focus {
+  outline: 2px solid var(--gruen);
+  outline-offset: 1px;
+}
+
+.admin-liste {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.admin-eintrag {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgba(138, 98, 54, 0.2);
+  border-radius: 10px;
+  background: #fffefb;
+}
+
+.admin-bild img {
+  display: block;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.admin-text {
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+}
+
+.admin-datum {
+  font-size: 0.8rem;
+  color: var(--text-leise);
+  white-space: nowrap;
+}
+
+.admin-eintrag form {
+  margin: 0;
+}
+
+.admin-eintrag .knoepf {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 720px) {
+  .admin-eintrag {
+    flex-wrap: wrap;
+  }
+
+  .admin-datum {
+    width: 100%;
+  }
+}
+
+/* ---------- Seitenfuss ---------- */
+.seitenfuss {
+  border-top: 1px solid rgba(138, 98, 54, 0.18);
+  background: rgba(250, 246, 239, 0.85);
+}
+
+.seitenfuss p {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0.9rem 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-leise);
+}
+
+.seitenfuss-herz {
+  color: var(--rot);
+}
+
+/* ---------- Kleinere Bildschirme ---------- */
+@media (max-width: 720px) {
+  .seitenkopf h1 {
+    font-size: 1.3rem;
+  }
+
+  .untertitel {
+    display: none;
+  }
+
+  .pinnwand-ueberschrift {
+    position: static;
+    max-width: none;
+    margin-bottom: 0.9rem;
+  }
+
+  .pinnwand {
+    min-height: calc(100vh - 250px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .notiz,
+  .knoepf,
+  .navigation a {
+    transition: none;
+  }
+}

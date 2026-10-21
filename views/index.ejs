@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <%- include('resources/head.ejs', { titel: titel, description: 'Eine Pinnwand voller Wünsche für Herrn Gerstgrasser.' }) %>
+  </head>
+
+  <body>
+    <%- include('resources/header.ejs', { fehler: fehler }) %>
+
+    <main class="seite">
+      <section id="pinnwand" class="pinnwand-abschnitt">
+        <div class="pinnwand-ueberschrift">
+          <p class="abschnitt-text">
+            <% if (eintraege.length === 0) { %>
+              Noch hängt nichts an der Wand. Schreibe einen Wunsch an Herrn Gerstgrasser.
+            <% } else { %>
+              <%= eintraege.length %> <%= eintraege.length === 1 ? 'Wunsch' : 'Wünsche' %> hängen gerade an der Wand.
+            <% } %>
+          </p>
+        </div>
+
+        <%- include('resources/pinnwand.ejs', { eintraege: eintraege }) %>
+      </section>
+    </main>
+
+    <%- include('resources/footer.ejs') %>
+    <%- include('resources/scripts.ejs') %>
+  </body>
+</html>

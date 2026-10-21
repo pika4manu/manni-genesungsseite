@@ -1,0 +1,20 @@
+<header class="seitenkopf">
+  <div class="seitenkopf-inhalt">
+    <div class="seitenkopf-titel">
+      <span class="korknadel" aria-hidden="true"></span>
+      <div>
+        <h1>Genesungsseite</h1>
+        <p class="untertitel">Wünsche für Herrn Gerstgrasser sammeln und an die Wand hängen</p>
+      </div>
+    </div>
+
+    <%- include('nav.ejs') %>
+
+    <button class="knoepf" type="button" data-dialog-oeffnen="wunsch-dialog">
+      Genesungswunsch wünschen
+    </button>
+  </div>
+
+  <%- include('dialog.ejs', { fehler: fehler }) %>
+  <%- include('posit-dialog.ejs') %>
+</header>

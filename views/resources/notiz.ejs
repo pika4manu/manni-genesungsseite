@@ -1,0 +1,30 @@
+<article
+  class="notiz notiz--<%= eintrag.bildIndex %>"
+  role="listitem"
+  style="
+    --drehung: <%= drehung %>deg;
+    --bild: url('<%= eintrag.image %>');
+    --aspect: <%= eintrag.aspect %>;
+    --schrift: <%= eintrag.schriftFaktor %>cqw;
+    --text-links: <%= eintrag.textBereich.links %>;
+    --text-rechts: <%= eintrag.textBereich.rechts %>;
+    --text-oben: <%= eintrag.textBereich.oben %>;
+    --text-unten: <%= eintrag.textBereich.unten %>;
+    left: <%= x %>%;
+    top: <%= y %>%;
+  "
+>
+  <div class="notiz-text-bereich">
+    <p class="notiz-text"><span class="notiz-text-inhalt"><%= eintrag.text %></span></p>
+  </div>
+
+  <div class="notiz-meta">
+    <time datetime="<%= eintrag.createdAt %>">
+      <%= new Date(eintrag.createdAt).toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }) %>
+    </time>
+  </div>
+</article>

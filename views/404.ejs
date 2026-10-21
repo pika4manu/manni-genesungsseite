@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <%- include('resources/head.ejs', { titel: titel, description: 'Diese Seite gibt es nicht.' }) %>
+  </head>
+
+  <body>
+    <%- include('resources/header.ejs', { fehler: null }) %>
+
+    <main class="seite">
+      <section class="leerseite">
+        <h2 class="abschnitt-titel">Hier ist gerade nichts angepinnt</h2>
+        <p class="abschnitt-text">
+          Die gesuchte Seite wurde nicht gefunden. Vielleicht hilft ein Blick auf die Pinnwand weiter.
+        </p>
+        <a class="knoepf knoepf-als-link" href="/">Zurück zur Pinnwand</a>
+      </section>
+    </main>
+
+    <%- include('resources/footer.ejs') %>
+    <%- include('resources/scripts.ejs') %>
+  </body>
+</html>
