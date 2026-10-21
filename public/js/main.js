@@ -5,7 +5,6 @@
 
   // Von den Init-Funktionen gefüllt (für Austausch zwischen den Bausteinen)
   var karteApi = { flug: null };
-  var positionswahlApi = { setze: null };
 
   // ---------- Fehlermeldungen ----------
   var FEHLER_TEXTE = {
@@ -329,11 +328,6 @@
           if (feld) {
             feld.value = '';
             aktualisiereZaehler();
-          }
-
-          // Pin für den nächsten Wunsch wieder nach unten setzen
-          if (positionswahlApi.setze) {
-            positionswahlApi.setze(50, 94);
           }
 
           if (daten.eintrag) {
@@ -680,114 +674,6 @@
     });
   }
 
-  // ---------- Position für den neuen Wunsch wählen ----------
-  function initPositionswahl() {
-    var karte = document.getElementById('mini-karte');
-    if (!karte) return;
-
-    var pin = document.getElementById('mini-pin');
-    var feldX = document.getElementById('position-x');
-    var feldY = document.getElementById('position-y');
-
-    function setzePosition(x, y) {
-      x = Math.min(94, Math.max(6, x));
-      y = Math.min(94, Math.max(8, y));
-
-      pin.style.left = x + '%';
-      pin.style.top = y + '%';
-      feldX.value = String(Math.round(x));
-      feldY.value = String(Math.round(y));
-    }
-
-    positionswahlApi.setze = setzePosition;
-
-    function positionAusEvent(ereignis) {
-      var rect = karte.getBoundingClientRect();
-      return {
-        x: ((ereignis.clientX - rect.left) / rect.width) * 100,
-        y: ((ereignis.clientY - rect.top) / rect.height) * 100
-      };
-    }
-
-    var zieht = false;
-    var modus = null; // 'setzen' (Karte antippen) oder 'verschieben' (Pin greifen)
-    var versatz = { x: 0, y: 0 };
-
-    karte.addEventListener('pointerdown', function (ereignis) {
-      ereignis.preventDefault();
-      zieht = true;
-      karte.setPointerCapture(ereignis.pointerId);
-
-      var position = positionAusEvent(ereignis);
-      var istPin =
-        ereignis.target &&
-        ereignis.target.classList &&
-        ereignis.target.classList.contains('mini-pin');
-
-      if (istPin) {
-        // Am festgehaltenen Punkt greifen und mitnehmen – kein Springen
-        modus = 'verschieben';
-        versatz.x = (parseFloat(feldX.value) || 50) - position.x;
-        versatz.y = (parseFloat(feldY.value) || 94) - position.y;
-        pin.classList.add('zieht');
-      } else {
-        // Direkt auf die Karte tippen → Pin wandert dorthin
-        modus = 'setzen';
-        versatz.x = 0;
-        versatz.y = 0;
-        setzePosition(position.x, position.y);
-      }
-    });
-
-    karte.addEventListener('pointermove', function (ereignis) {
-      if (!zieht) return;
-
-      var position = positionAusEvent(ereignis);
-
-      if (modus === 'verschieben') {
-        setzePosition(position.x + versatz.x, position.y + versatz.y);
-      } else {
-        setzePosition(position.x, position.y);
-      }
-    });
-
-    function beendeZiehen() {
-      zieht = false;
-      modus = null;
-      pin.classList.remove('zieht');
-    }
-
-    karte.addEventListener('pointerup', beendeZiehen);
-    karte.addEventListener('pointercancel', beendeZiehen);
-
-    // Mit der Tastatur den Pin verschieben
-    karte.addEventListener('keydown', function (ereignis) {
-      var schritt = ereignis.shiftKey ? 10 : 3;
-      var x = parseFloat(feldX.value) || 50;
-      var y = parseFloat(feldY.value) || 94;
-
-      if (ereignis.key === 'ArrowLeft') x -= schritt;
-      else if (ereignis.key === 'ArrowRight') x += schritt;
-      else if (ereignis.key === 'ArrowUp') y -= schritt;
-      else if (ereignis.key === 'ArrowDown') y += schritt;
-      else return;
-
-      ereignis.preventDefault();
-      setzePosition(x, y);
-    });
-
-    // Start: Pin unten in der Mitte – oder wiederhergestellte Koordinaten
-    var startX = parseFloat(urlParameter.get('x'));
-    var startY = parseFloat(urlParameter.get('y'));
-
-    if (isFinite(startX) && isFinite(startY)) {
-      setzePosition(startX, startY);
-    } else {
-      setzePosition(50, 94);
-    }
-  }
-
   initKarte();
-  initPositionswahl();
   initFormularAbsenden();
 })();

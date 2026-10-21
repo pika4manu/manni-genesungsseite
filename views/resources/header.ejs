@@ -8,17 +8,12 @@
       </div>
     </div>
 
-    <%- include('nav.ejs') %>
 
     <button class="knoepf" type="button" data-dialog-oeffnen="wunsch-dialog">
       Genesungswunsch wünschen
     </button>
   </div>
 
-  <%- include('dialog.ejs', {
-    fehler: fehler,
-    eintraege: eintraege,
-    textVorbelegt: textVorbelegt
-  }) %>
-  <%- include('posit-dialog.ejs') %>
+  <%- include('dialog.ejs', { fehler: fehler, eintraege: eintraege, textVorbelegt: textVorbelegt }) %>
+    <%- include('posit-dialog.ejs') %>
 </header>

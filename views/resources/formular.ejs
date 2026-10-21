@@ -23,25 +23,3 @@
     autocomplete="off"
   />
 </div>
-
-<div class="positionswahl">
-  <span class="formular-label" id="positionswahl-beschriftung">Wo soll der Wunsch hängen?</span>
-  <div
-    class="mini-karte"
-    id="mini-karte"
-    tabindex="0"
-    role="application"
-    aria-labelledby="positionswahl-beschriftung"
-    aria-describedby="positionswahl-hinweis"
-  >
-    <% eintraege.forEach(function (eintrag) { %>
-      <span class="mini-punkt" style="left: <%= eintrag.x %>%; top: <%= eintrag.y %>%;"></span>
-    <% }); %>
-    <span class="mini-pin" id="mini-pin"></span>
-  </div>
-  <input type="hidden" name="x" id="position-x" value="50" />
-  <input type="hidden" name="y" id="position-y" value="94" />
-  <p class="positionswahl-hinweis" id="positionswahl-hinweis">
-    Zieh den Pin von unten an die Stelle, an der der Wunsch hängen soll – oder tippe direkt auf die Karte.
-  </p>
-</div>

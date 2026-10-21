@@ -100,6 +100,39 @@ function zahl(wert, min, max, ersatz) {
   return Math.min(max, Math.max(min, n));
 }
 
+// Beim Erstellen bekommt jeder Wunsch einmalig eine zufällige Stelle auf der Karte,
+// mit mindestens etwas Abstand zu den bereits hängenden Wünschen
+function zufallsPosition(bestehende) {
+  const MINDEST_ABSTAND = 15; // Prozent der Karte, gemessen von Wunschmitte zu Wunschmitte
+  let besterKandidat = null;
+  let besterAbstand = -1;
+
+  for (let versuch = 0; versuch < 40; versuch++) {
+    const kandidat = {
+      x: Math.round(6 + Math.random() * 88),
+      y: Math.round(8 + Math.random() * 84),
+    };
+
+    let kleinsterAbstand = Infinity;
+    for (const anderer of bestehende) {
+      const abstand = Math.hypot(
+        kandidat.x - Number(anderer.x),
+        kandidat.y - Number(anderer.y),
+      );
+      if (abstand < kleinsterAbstand) kleinsterAbstand = abstand;
+    }
+
+    if (kleinsterAbstand >= MINDEST_ABSTAND) return kandidat;
+    if (kleinsterAbstand > besterAbstand) {
+      besterAbstand = kleinsterAbstand;
+      besterKandidat = kandidat;
+    }
+  }
+
+  // Die Wand ist voll – die am weitesten entfernte Stelle nehmen
+  return besterKandidat || { x: 50, y: 50 };
+}
+
 // Deterministische Ersatzposition für alte Einträge ohne gespeicherte Koordinaten
 function ersatzPosition(index, gesamt) {
   const spalten = Math.max(
@@ -118,7 +151,8 @@ function ersatzPosition(index, gesamt) {
   };
 }
 
-// Einträge laden; Einträge ohne x/y bekommen einmalig eine feste Position
+// Einträge laden; Einträge ohne x/y bekommen einmalig eine feste Position,
+// und Wünsche, die auf derselben Stelle hängen, werden einmalig entzerrt
 function ladeEintraege() {
   const eintraege = readEintraege();
   let geaendert = false;
@@ -133,6 +167,27 @@ function ladeEintraege() {
       eintrag.y = position.y;
       geaendert = true;
     }
+  });
+
+  const bereitsGesetzt = [];
+  eintraege.forEach(function (eintrag) {
+    const gestapelt = bereitsGesetzt.some(function (anderer) {
+      return (
+        Math.hypot(
+          Number(eintrag.x) - Number(anderer.x),
+          Number(eintrag.y) - Number(anderer.y),
+        ) < 3
+      );
+    });
+
+    if (gestapelt) {
+      const position = zufallsPosition(bereitsGesetzt);
+      eintrag.x = position.x;
+      eintrag.y = position.y;
+      geaendert = true;
+    }
+
+    bereitsGesetzt.push(eintrag);
   });
 
   if (geaendert) {
@@ -171,8 +226,6 @@ app.get("/", (req, res) => {
     eintraege: sortiereNachDatum(ladeEintraege()).map(mitPositDaten),
     fehler: req.query.fehler || null,
     textVorbelegt: req.query.text || null,
-    posX: req.query.x != null ? zahl(req.query.x, 0, 100, null) : null,
-    posY: req.query.y != null ? zahl(req.query.y, 0, 100, null) : null,
     neuId: req.query.neu || null,
     titel: "Genesungsseite für Manfred",
   });
@@ -186,8 +239,6 @@ app.post("/wuensche", (req, res) => {
   function weiterleiten(fehlerCode, daten) {
     let ziel = "/?fehler=" + encodeURIComponent(fehlerCode);
     if (daten.text) ziel += "&text=" + encodeURIComponent(daten.text);
-    if (daten.x !== undefined)
-      ziel += "&x=" + encodeURIComponent(daten.x) + "&y=" + encodeURIComponent(daten.y);
     return res.redirect(ziel);
   }
 
@@ -208,33 +259,32 @@ app.post("/wuensche", (req, res) => {
   }
 
   const text = (req.body.text || "").toString().trim();
-  const x = zahl(req.body.x, 0, 100, 50);
-  const y = zahl(req.body.y, 0, 100, 50);
 
   if (!text) {
     return fehlerAntwort(422, "leer");
   }
   if (text.length > MAX_TEXT_LENGTH) {
-    return fehlerAntwort(422, "zu-lang", { text, x, y });
+    return fehlerAntwort(422, "zu-lang", { text });
   }
 
   // Mindestabstand pro IP - schützt vor massenhaften Abgaben, stört aber niemanden
   const jetzt = Date.now();
   const letztes = letzterWunsch.get(req.ip) || 0;
   if (jetzt - letztes < MINDEST_ABSTAND_MS) {
-    return fehlerAntwort(429, "zu-schnell", { text, x, y });
+    return fehlerAntwort(429, "zu-schnell", { text });
   }
 
   const eintraege = ladeEintraege();
   // Jeder neue Wunsch landet auf dem nächsten freien Posit
   const posit = POSIT_BILDER[eintraege.length % POSIT_BILDER.length];
+  const position = zufallsPosition(eintraege);
   const eintrag = {
     id: crypto.randomUUID(),
     text: text,
     image: posit.url,
     createdAt: new Date().toISOString(),
-    x: x,
-    y: y,
+    x: position.x,
+    y: position.y,
   };
 
   eintraege.push(eintrag);
@@ -244,7 +294,7 @@ app.post("/wuensche", (req, res) => {
     letzterWunsch.set(req.ip, jetzt);
   } catch (fehler) {
     console.error("db.json konnte nicht gespeichert werden:", fehler.message);
-    return fehlerAntwort(500, "speicher", { text, x, y });
+    return fehlerAntwort(500, "speicher", { text });
   }
 
   if (ajax) {

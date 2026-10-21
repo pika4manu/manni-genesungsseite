@@ -529,106 +529,9 @@ body {
   color: var(--text-leise);
 }
 
-/* Honigtopf: außerhalb des Bildschirms, aber im DOM vorhanden */
+/* Honigtopf: im DOM vorhanden, aber für Nutzer unsichtbar */
 .spamschutz {
-  position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-
-/* ---------- Position auf der Karte wählen ---------- */
-.positionswahl {
-  margin-top: 1.1rem;
-}
-
-.mini-karte {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 8 / 5;
-  border-radius: 12px;
-  border: 1px solid rgba(138, 98, 54, 0.35);
-  background-color: var(--kork-hell);
-  background-image: url("/img/pinn_wand.png");
-  background-size: cover;
-  background-position: center;
-  box-shadow: inset 0 0 40px rgba(74, 56, 32, 0.3);
-  cursor: crosshair;
-  touch-action: none;
-}
-
-.mini-karte:focus-visible {
-  outline: 2px solid var(--gruen);
-  outline-offset: 2px;
-}
-
-.mini-punkt {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  margin: -3.5px 0 0 -3.5px;
-  border-radius: 50%;
-  background: rgba(90, 60, 25, 0.55);
-  pointer-events: none;
-}
-
-.mini-pin {
-  position: absolute;
-  width: 36px;
-  height: 30px;
-  margin-left: -18px;
-  margin-top: -30px; /* die Spitze sitzt genau auf dem gesetzten Punkt */
-  pointer-events: auto;
-  cursor: grab;
-  z-index: 3;
-  touch-action: none;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
-  animation: pin-schweben 2.4s ease-in-out infinite;
-}
-
-.mini-pin:active,
-.mini-pin.zieht {
-  cursor: grabbing;
-}
-
-.mini-pin.zieht {
-  animation: none;
-}
-
-.mini-pin::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 20px;
-  height: 20px;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: var(--rot);
-  border: 3px solid #fff;
-  box-sizing: border-box;
-}
-
-.mini-pin::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 11px solid var(--rot);
-}
-
-@keyframes pin-schweben {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
+  display: none;
 }
 
 /* Der frisch gehängte Wunsch erscheint sanft an seiner Stelle */
@@ -650,12 +553,6 @@ body {
 
 .hinweis[hidden] {
   display: none;
-}
-
-.positionswahl-hinweis {
-  margin: 0.5rem 0 0;
-  font-size: 0.82rem;
-  color: var(--text-leise);
 }
 
 .hinweis {
