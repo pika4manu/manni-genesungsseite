@@ -324,6 +324,7 @@ body {
   transform: translate(-50%, -50%) rotate(var(--drehung, 0deg));
   transition: transform 0.2s ease, filter 0.2s ease;
   container-type: inline-size;
+  cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;

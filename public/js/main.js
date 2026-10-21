@@ -161,6 +161,27 @@
     }
   });
 
+  // Jeder Wunsch lässt sich antippen und zeigt dann das ganze Blatt
+  function notizKlickbarMachen(notiz) {
+    if (!notiz || notiz.dataset.klickbar === 'ja') return;
+    notiz.dataset.klickbar = 'ja';
+
+    notiz.addEventListener('click', function () {
+      zeigePosit(notiz);
+    });
+
+    notiz.addEventListener('keydown', function (ereignis) {
+      if (ereignis.key === 'Enter' || ereignis.key === ' ') {
+        ereignis.preventDefault();
+        zeigePosit(notiz);
+      }
+    });
+
+    notiz.setAttribute('tabindex', '0');
+    notiz.setAttribute('role', 'button');
+    notiz.setAttribute('aria-label', 'Wunsch vollständig lesen');
+  }
+
   // Passt der Text nicht auf das Blatt, gibt es einen „Mehr lesen“-Klick
   function starteUeberlaufPruefung(notiz) {
     var text = notiz.querySelector('.notiz-text-inhalt');
@@ -172,6 +193,8 @@
     var ueberlauf =
       text.scrollHeight > text.offsetHeight + 2 ||
       text.scrollHeight > bereich.clientHeight + 2;
+
+    notizKlickbarMachen(notiz);
 
     if (!ueberlauf) return;
 
@@ -194,21 +217,6 @@
       ereignis.stopPropagation();
       zeigePosit(notiz);
     });
-
-    notiz.addEventListener('click', function () {
-      zeigePosit(notiz);
-    });
-
-    notiz.addEventListener('keydown', function (ereignis) {
-      if (ereignis.key === 'Enter' || ereignis.key === ' ') {
-        ereignis.preventDefault();
-        zeigePosit(notiz);
-      }
-    });
-
-    notiz.setAttribute('tabindex', '0');
-    notiz.setAttribute('role', 'button');
-    notiz.setAttribute('aria-label', 'Wunsch vollständig lesen');
   }
 
   document.querySelectorAll('.notiz').forEach(starteUeberlaufPruefung);
@@ -351,6 +359,7 @@
     var MIN_ZOOM = 0.1;
     var MAX_ZOOM = 2.5;
     var RAND = 60;
+    var PAN_SCHWELLE = 10; // erst ab dieser Bewegung gilt es als Schwenken
 
     // Auf kleinen Bildschirmen wird die Wand kleiner gerechnet – die Wünsche
     // wirken dadurch größer und sind besser zu lesen
@@ -665,8 +674,16 @@
         var dx = ereignis.clientX - startMaus.x;
         var dy = ereignis.clientY - startMaus.y;
 
-        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        // Erst ab einer deutlicheren Bewegung wird die Karte geschwenkt –
+        // so bleibt ein Tippen auf einen Wunsch ein Tippen und kein Schwenken
+        if (!hatGepannt) {
+          if (Math.hypot(dx, dy) <= PAN_SCHWELLE) return;
+
           hatGepannt = true;
+          startMaus = { x: ereignis.clientX, y: ereignis.clientY };
+          startKamera = { x: kamera.x, y: kamera.y };
+          dx = 0;
+          dy = 0;
         }
 
         kamera.x = startKamera.x + dx;
