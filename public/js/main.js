@@ -580,28 +580,10 @@
       if (hinweis) hinweis.hidden = true;
     }
 
-    // Startansicht: Schwerpunkt aller Wünsche
-    var mittelX = 50;
-    var mittelY = 50;
-    var notizen = welt.querySelectorAll('.notiz');
-
-    if (notizen.length) {
-      var summeX = 0;
-      var summeY = 0;
-
-      notizen.forEach(function (notiz) {
-        summeX += parseFloat(notiz.style.left) || 50;
-        summeY += parseFloat(notiz.style.top) || 50;
-      });
-
-      mittelX = summeX / notizen.length;
-      mittelY = summeY / notizen.length;
-    }
-
+    // Startansicht: die ganze Wand im Bild – wie beim Button "Übersicht"
     var startZoom =
-      window.innerWidth <= 720
-        ? Math.min(0.7, Math.max(0.45, viewport.clientWidth / 560))
-        : Math.min(0.9, Math.max(0.28, viewport.clientHeight / 1500));
+      Math.min(viewport.clientWidth / weltBreite, viewport.clientHeight / weltHoehe) *
+      0.95;
 
     var neuId = urlParameter.get('neu');
     var neueNotiz = neuId
@@ -609,13 +591,15 @@
       : null;
 
     if (neueNotiz) {
+      // Ein neuer Wunsch wird gezielt gezeigt
       zentriereAuf(
         parseFloat(neueNotiz.style.left) || 50,
         parseFloat(neueNotiz.style.top) || 50,
         0.9
       );
     } else {
-      zentriereAuf(mittelX, mittelY, startZoom);
+      // Sonst startet die Seite in der Übersicht
+      zentriereAuf(50, 50, startZoom);
     }
 
     // --- Maus & Touch: Ziehen zum Schwenken, Pinch zum Zoomen ---
