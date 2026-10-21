@@ -5,7 +5,11 @@
   </head>
 
   <body>
-    <%- include('resources/header.ejs', { fehler: null }) %>
+    <%- include('resources/header.ejs', {
+      fehler: null,
+      eintraege: eintraege,
+      textVorbelegt: null
+    }) %>
 
     <main class="seite">
       <section class="leerseite verwaltung">

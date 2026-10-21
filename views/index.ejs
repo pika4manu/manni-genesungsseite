@@ -5,7 +5,11 @@
   </head>
 
   <body>
-    <%- include('resources/header.ejs', { fehler: fehler }) %>
+    <%- include('resources/header.ejs', {
+      fehler: fehler,
+      eintraege: eintraege,
+      textVorbelegt: textVorbelegt
+    }) %>
 
     <main class="seite">
       <section id="pinnwand" class="pinnwand-abschnitt">

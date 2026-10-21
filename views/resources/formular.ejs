@@ -6,8 +6,42 @@
   maxlength="600"
   required
   placeholder="Ich wünsche dir …"
-></textarea>
+><%= textVorbelegt || '' %></textarea>
 
 <div class="formular-zeile">
   <span class="zeichenzaehler"><span id="zeichenzaehler-stand">0</span> / 600 Zeichen</span>
+</div>
+
+<%# Honigtopf: Menschen ignorieren dieses Feld, Spam-Bots füllen es aus %>
+<div class="spamschutz" aria-hidden="true">
+  <label for="homepage">Homepage</label>
+  <input
+    type="text"
+    id="homepage"
+    name="homepage"
+    tabindex="-1"
+    autocomplete="off"
+  />
+</div>
+
+<div class="positionswahl">
+  <span class="formular-label" id="positionswahl-beschriftung">Position an der Wand</span>
+  <div
+    class="mini-karte"
+    id="mini-karte"
+    tabindex="0"
+    role="application"
+    aria-labelledby="positionswahl-beschriftung"
+    aria-describedby="positionswahl-hinweis"
+  >
+    <% eintraege.forEach(function (eintrag) { %>
+      <span class="mini-punkt" style="left: <%= eintrag.x %>%; top: <%= eintrag.y %>%;"></span>
+    <% }); %>
+    <span class="mini-pin" id="mini-pin"></span>
+  </div>
+  <input type="hidden" name="x" id="position-x" value="50" />
+  <input type="hidden" name="y" id="position-y" value="50" />
+  <p class="positionswahl-hinweis" id="positionswahl-hinweis">
+    Tippe auf die Karte, um den Wunsch zu platzieren. Mit den Pfeiltasten lässt sich der Pin auch verschieben.
+  </p>
 </div>

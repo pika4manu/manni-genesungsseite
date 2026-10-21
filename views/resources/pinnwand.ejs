@@ -1,32 +1,46 @@
 <%
-  const gesamt = eintraege.length;
-  const spalten = Math.max(1, Math.min(6, Math.ceil(Math.sqrt(gesamt * 1.7))));
-  const zeilen = Math.max(1, Math.ceil(gesamt / spalten));
   const drehungen = [-3, 2.5, -1.5, 4, -4.5, 1.5, 3.5, -2.5, 2, -3.5];
-  const streuung = (i) => (((i * 37) % 13) - 6) / 100;
-  const zeilenHoehe = 300;
+  const weltBreite = 3200;
+  const weltHoehe = 2100;
 %>
-<div class="pinnwand" style="--board-hoehe: <%= zeilen * zeilenHoehe + 70 %>px;" role="list">
-  <% eintraege.forEach(function (eintrag, index) { %>
-    <%
-      const spalte = index % spalten;
-      const zeile = Math.floor(index / spalten);
-      const x = 8 + ((spalte + 0.5) / spalten) * 84 + streuung(index) * 40;
-      const y = 14 + ((zeile + 0.5) / zeilen) * 78 + streuung(index + 5) * 30;
-    %>
-    <%- include('notiz.ejs', {
-      eintrag: eintrag,
-      index: index,
-      drehung: drehungen[index % drehungen.length],
-      x: x,
-      y: y
-    }) %>
-  <% }); %>
+<div
+  class="pinnwand-viewport"
+  id="pinnwand-viewport"
+  data-welt-breite="<%= weltBreite %>"
+  data-welt-hoehe="<%= weltHoehe %>"
+>
+  <div
+    class="pinnwand"
+    id="pinnwand-welt"
+    style="--welt-breite: <%= weltBreite %>px; --welt-hoehe: <%= weltHoehe %>px;"
+    role="list"
+    aria-label="Pinnwand"
+  >
+    <% eintraege.forEach(function (eintrag, index) { %>
+      <%- include('notiz.ejs', {
+        eintrag: eintrag,
+        index: index,
+        drehung: drehungen[index % drehungen.length],
+        x: eintrag.x,
+        y: eintrag.y
+      }) %>
+    <% }); %>
 
-  <% if (eintraege.length === 0) { %>
-    <p class="pinnwand-leer">
-      Die Wand ist noch leer – klicke oben auf „Genesungswunsch wünschen“ und
-      schreib den ersten Wunsch für Herrn Gerstgrasser auf.
-    </p>
-  <% } %>
+    <% if (eintraege.length === 0) { %>
+      <p class="pinnwand-leer">
+        Die Wand ist noch leer – klicke oben auf „Genesungswunsch wünschen“ und
+        schreib den ersten Wunsch für Herrn Gerstgrasser auf.
+      </p>
+    <% } %>
+  </div>
+
+  <p class="karte-hinweis" id="karte-hinweis">
+    Schwenken durch Ziehen · Zoomen durch Scrollen oder Pinch
+  </p>
+
+  <div class="karte-steuerung">
+    <button type="button" class="karte-knopf" id="karte-zoom-rein" aria-label="Hineinzoomen">+</button>
+    <button type="button" class="karte-knopf" id="karte-zoom-raus" aria-label="Herauszoomen">−</button>
+    <button type="button" class="karte-knopf" id="karte-uebersicht" aria-label="Ganze Pinnwand anzeigen">⌂</button>
+  </div>
 </div>

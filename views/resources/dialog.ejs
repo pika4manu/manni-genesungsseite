@@ -12,13 +12,18 @@
           Bitte schreibe zuerst einen Wunsch auf.
         <% } else if (fehler === 'zu-lang') { %>
           Der Wunsch ist zu lang. Maximal 600 Zeichen sind erlaubt.
+        <% } else if (fehler === 'zu-schnell') { %>
+          Bitte kurz warten – du kannst deinen Wunsch gleich noch einmal anhängen.
         <% } else { %>
           Der Wunsch konnte nicht gespeichert werden. Bitte versuche es noch einmal.
         <% } %>
       </p>
     <% } %>
 
-    <%- include('formular.ejs') %>
+    <%- include('formular.ejs', {
+      eintraege: eintraege,
+      textVorbelegt: textVorbelegt
+    }) %>
 
     <div class="dialog-aktionen">
       <button class="knoepf knoepf-neutral" type="button" data-dialog-schliessen="wunsch-dialog">
